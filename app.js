@@ -1,6 +1,6 @@
 
 const STORAGE_KEY = "intolearn_personal_v1";
-const APP_VERSION = "3.5";
+const APP_VERSION = "3.6";
 const mealTypes = [
   {key:"breakfast", label:"Breakfast", icon:"☀️"},
   {key:"lunch", label:"Lunch", icon:"🌤️"},
@@ -536,8 +536,28 @@ function renderMonthResults(){
   const results=[];
   Object.entries(state.days).filter(([k])=>k.startsWith(prefix)).forEach(([k,day])=>{
     mealTypes.forEach(m=>(day.meals?.[m.key]||[]).forEach(x=>{
-      const hay=[x.name,...(x.ingredients||[]),x.notes||"",...(day.exit?.symptoms||[])].join(" ").toLowerCase();
-      if(!q || hay.includes(q)) results.push({k,m,x});
+      // Search everything Intolearn knows about the meal, including
+      // OCR ingredients and the structured allergen/tracking tags.
+      const hay=[
+        x.name,
+        ...(x.ingredients||[]),
+        ...(x.allergens||[]),
+        ...(x.families||[]),
+        x.notes||"",
+        ...(day.exit?.symptoms||[])
+      ].join(" ").toLowerCase();
+
+      // Helpful aliases for natural searches.
+      const aliases = {
+        "dairy":"milk",
+        "gluten":"cereals containing gluten",
+        "nuts":"tree nuts",
+        "nut":"tree nuts",
+        "soy":"soya"
+      };
+      const searchTerm = aliases[q] || q;
+
+      if(!q || hay.includes(q) || hay.includes(searchTerm)) results.push({k,m,x});
     }));
   });
   results.sort((a,b)=>b.k.localeCompare(a.k));
