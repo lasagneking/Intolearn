@@ -1,6 +1,6 @@
 
 const STORAGE_KEY = "intolearn_personal_v1";
-const APP_VERSION = "3.7";
+const APP_VERSION = "3.8";
 const mealTypes = [
   {key:"breakfast", label:"Breakfast", icon:"☀️"},
   {key:"lunch", label:"Lunch", icon:"🌤️"},
@@ -129,6 +129,7 @@ async function scanIngredientImage(file){
 let state = loadState();
 let activeMeal = "breakfast";
 let editingIndex = null;
+let editingDateKey = null;
 let photoData = "";
 let toastTimer = null;
 let cropper = null;
@@ -151,6 +152,7 @@ function ensureDay(key=dateKey()){
 function fmtDate(d){ return d.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"}); }
 function parseIngredients(raw){ return raw.split(/[\n,;]+/).map(x=>x.trim()).filter(Boolean); }
 function currentDay(){ return ensureDay(); }
+function getDay(key){ return ensureDay(key || dateKey()); }
 function escapeHtml(s=""){
   return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
 }
@@ -197,8 +199,8 @@ function renderMeals(){
   });
 
   document.querySelectorAll(".add-btn").forEach(btn=>btn.onclick=()=>openMeal(btn.dataset.meal));
-  document.querySelectorAll(".view-entry").forEach(btn=>btn.onclick=()=>openMeal(btn.dataset.meal, Number(btn.dataset.index)));
-  document.querySelectorAll(".delete-entry").forEach(btn=>btn.onclick=()=>deleteMeal(btn.dataset.meal, Number(btn.dataset.index), false));
+  document.querySelectorAll(".view-entry").forEach(btn=>btn.onclick=()=>openMeal(btn.dataset.meal, Number(btn.dataset.index), dateKey()));
+  document.querySelectorAll(".delete-entry").forEach(btn=>btn.onclick=()=>deleteMeal(btn.dataset.meal, Number(btn.dataset.index), false, dateKey()));
 }
 
 function resetMealForm(){
@@ -223,9 +225,10 @@ function resetMealForm(){
   photoData="";
 }
 
-function openMeal(meal, index=null){
+function openMeal(meal, index=null, entryDateKey=null){
   activeMeal=meal;
   editingIndex=index;
+  editingDateKey=entryDateKey || dateKey();
   const meta=mealTypes.find(x=>x.key===meal);
   resetMealForm();
 
@@ -235,7 +238,7 @@ function openMeal(meal, index=null){
   document.getElementById("deleteMealBtn").classList.toggle("hidden", index===null);
 
   if(index!==null){
-    const item=currentDay().meals[meal][index];
+    const item=getDay(editingDateKey).meals[meal][index];
     if(!item) return;
     document.getElementById("foodName").value=item.name||"";
     document.getElementById("foodTime").value=item.time||"";
@@ -288,7 +291,7 @@ function saveMeal(){
     allergens:detectUKAllergens(document.getElementById("ingredients").value),
     notes:document.getElementById("foodNotes").value.trim(),
     photo:photoData,
-    createdAt: editingIndex===null ? new Date().toISOString() : (currentDay().meals[activeMeal][editingIndex]?.createdAt || new Date().toISOString()),
+    createdAt: editingIndex===null ? new Date().toISOString() : (getDay(editingDateKey).meals[activeMeal][editingIndex]?.createdAt || new Date().toISOString()),
     updatedAt:new Date().toISOString()
   };
 
@@ -297,7 +300,7 @@ function saveMeal(){
   if(isNew){
     currentDay().meals[activeMeal].push(entry);
   }else{
-    currentDay().meals[activeMeal][editingIndex]=entry;
+    getDay(editingDateKey).meals[activeMeal][editingIndex]=entry;
   }
 
   saveState();
@@ -314,11 +317,12 @@ function saveMeal(){
   }
 }
 
-function deleteMeal(meal, index, fromDialog=true){
-  const item=currentDay().meals[meal]?.[index];
+function deleteMeal(meal, index, fromDialog=true, entryDateKey=null){
+  const targetDay=getDay(entryDateKey || editingDateKey || dateKey());
+  const item=targetDay.meals[meal]?.[index];
   if(!item) return;
   if(!confirm(`Delete "${item.name}"?`)) return;
-  currentDay().meals[meal].splice(index,1);
+  targetDay.meals[meal].splice(index,1);
   saveState();
   renderAll();
   if(fromDialog && document.getElementById("mealDialog").open) closeMealDialog();
@@ -328,7 +332,7 @@ function deleteMeal(meal, index, fromDialog=true){
 document.getElementById("saveMealBtn").addEventListener("click", saveMeal);
 document.getElementById("cancelMealBtn").addEventListener("click", closeMealDialog);
 document.getElementById("closeMealDialog").addEventListener("click", closeMealDialog);
-document.getElementById("deleteMealBtn").addEventListener("click", ()=>deleteMeal(activeMeal, editingIndex, true));
+document.getElementById("deleteMealBtn").addEventListener("click", ()=>deleteMeal(activeMeal, editingIndex, true, editingDateKey));
 
 document.getElementById("mealForm").addEventListener("submit", e=>e.preventDefault());
 document.getElementById("mealDialog").addEventListener("cancel", e=>{
@@ -584,10 +588,10 @@ function renderMonthResults(){
       .forEach(([k,day])=>{
         mealTypes.forEach(m=>{
           const entries=day?.meals?.[m.key]||[];
-          entries.forEach(x=>{
+          entries.forEach((x,index)=>{
             const hay=getMealSearchText(x,day);
             const matches=!q || terms.some(term=>hay.includes(term));
-            if(matches) results.push({k,m,x});
+            if(matches) results.push({k,m,x,index});
           });
         });
       });
@@ -596,11 +600,19 @@ function renderMonthResults(){
 
     resultsBox.innerHTML=results.length
       ? results.map(o=>`
-        <div class="timeline-item">
+        <button type="button" class="timeline-item month-result-link"
+          data-date="${o.k}" data-meal="${o.m}" data-index="${o.index}">
           <strong>${escapeHtml(o.x?.name||"Untitled entry")}</strong>
           <small>${new Date(o.k+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short"})} · ${mealTypes.find(m=>m.key===o.m)?.label||""}</small>
-        </div>`).join("")
+          <span class="result-chevron">›</span>
+        </button>`).join("")
       : `<p class="muted">No matching entries.</p>`;
+
+    resultsBox.querySelectorAll(".month-result-link").forEach(btn=>{
+      btn.addEventListener("click",()=>{
+        openMeal(btn.dataset.meal, Number(btn.dataset.index), btn.dataset.date);
+      });
+    });
   }catch(err){
     console.error("Month search failed",err);
     resultsBox.innerHTML=`<p class="muted">Month search could not be loaded.</p>`;
