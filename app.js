@@ -1,6 +1,6 @@
 
 const STORAGE_KEY = "intolearn_personal_v1";
-const APP_VERSION = "3.3";
+const APP_VERSION = "3.4";
 const mealTypes = [
   {key:"breakfast", label:"Breakfast", icon:"☀️"},
   {key:"lunch", label:"Lunch", icon:"🌤️"},
@@ -131,6 +131,8 @@ let activeMeal = "breakfast";
 let editingIndex = null;
 let photoData = "";
 let toastTimer = null;
+let cropper = null;
+let pendingPhotoFile = null;
 
 function blankState(){ return { days:{} }; }
 function loadState(){
@@ -336,14 +338,79 @@ document.getElementById("mealDialog").addEventListener("cancel", e=>{
 
 function handleIngredientPhoto(file){
   if(!file) return;
+  pendingPhotoFile=file;
+
   const reader=new FileReader();
   reader.onload=()=>{
-    photoData=reader.result;
-    document.getElementById("photoPreview").innerHTML=`<img src="${photoData}" alt="Ingredient photo preview">`;
+    const cropImg=document.getElementById("cropImage");
+    cropImg.src=reader.result;
+
+    const dialog=document.getElementById("cropDialog");
+    dialog.showModal();
+
+    // Wait until the image is laid out before starting Cropper.
+    setTimeout(()=>{
+      if(cropper) cropper.destroy();
+      cropper=new Cropper(cropImg,{
+        viewMode:1,
+        dragMode:"move",
+        autoCropArea:0.82,
+        responsive:true,
+        background:false,
+        movable:true,
+        zoomable:true,
+        rotatable:false,
+        scalable:false
+      });
+    },80);
   };
   reader.readAsDataURL(file);
+}
+
+function closeCropDialog(){
+  const d=document.getElementById("cropDialog");
+  try { if(d.open) d.close(); } catch(e) {}
+  if(d.hasAttribute("open")) d.removeAttribute("open");
+  if(cropper){ cropper.destroy(); cropper=null; }
+}
+function blobToFile(blob,name="ingredient-crop.jpg"){
+  return new File([blob],name,{type:blob.type||"image/jpeg"});
+}
+function processChosenImage(file, previewData){
+  photoData=previewData;
+  document.getElementById("photoPreview").innerHTML=`<img src="${previewData}" alt="Ingredient photo preview">`;
+  closeCropDialog();
   scanIngredientImage(file);
 }
+document.getElementById("confirmCropBtn").addEventListener("click",()=>{
+  if(!cropper) return;
+  const canvas=cropper.getCroppedCanvas({
+    maxWidth:1800,
+    maxHeight:1800,
+    imageSmoothingEnabled:true,
+    imageSmoothingQuality:"high"
+  });
+  canvas.toBlob(blob=>{
+    if(!blob) return;
+    const file=blobToFile(blob);
+    const data=canvas.toDataURL("image/jpeg",0.92);
+    processChosenImage(file,data);
+  },"image/jpeg",0.92);
+});
+document.getElementById("useFullPhotoBtn").addEventListener("click",()=>{
+  if(!pendingPhotoFile) return;
+  const reader=new FileReader();
+  reader.onload=()=>processChosenImage(pendingPhotoFile,reader.result);
+  reader.readAsDataURL(pendingPhotoFile);
+});
+document.getElementById("cancelCropBtn").addEventListener("click",()=>{
+  closeCropDialog();
+});
+document.getElementById("cropDialog").addEventListener("cancel",e=>{
+  e.preventDefault();
+  closeCropDialog();
+});
+
 document.getElementById("ingredientCamera").addEventListener("change",e=>{
   handleIngredientPhoto(e.target.files?.[0]);
 });

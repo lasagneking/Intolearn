@@ -127,3 +127,12 @@ dialog input,dialog textarea{margin-bottom:14px}
 @media(max-width:380px){.photo-choice-row{grid-template-columns:1fr}}
 
 .build-marker{margin-top:8px;font-size:10px;color:var(--muted);text-align:right;opacity:.65}
+
+/* v3.4 crop-before-OCR */
+.crop-shell{padding:22px}
+#cropDialog{max-width:680px}
+.crop-help{margin-top:-4px;margin-bottom:14px}
+.crop-stage{width:100%;height:min(58vh,520px);background:#111;border-radius:16px;overflow:hidden}
+.crop-stage img{display:block;max-width:100%}
+.crop-actions{margin-top:16px}
+.cropper-view-box,.cropper-face{border-radius:4px}
