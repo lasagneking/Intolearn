@@ -136,3 +136,8 @@ dialog input,dialog textarea{margin-bottom:14px}
 .crop-stage img{display:block;max-width:100%}
 .crop-actions{margin-top:16px}
 .cropper-view-box,.cropper-face{border-radius:4px}
+
+/* v3.5 iOS crop image loading fix */
+.crop-stage{position:relative;min-height:320px}
+#cropImage{display:block;max-width:100%;max-height:58vh;margin:0 auto}
+.crop-error{display:flex;align-items:center;justify-content:center;height:100%;min-height:320px;padding:24px;text-align:center;color:#fff}

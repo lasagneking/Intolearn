@@ -1,6 +1,6 @@
 
 const STORAGE_KEY = "intolearn_personal_v1";
-const APP_VERSION = "3.4";
+const APP_VERSION = "3.5";
 const mealTypes = [
   {key:"breakfast", label:"Breakfast", icon:"☀️"},
   {key:"lunch", label:"Lunch", icon:"🌤️"},
@@ -343,26 +343,48 @@ function handleIngredientPhoto(file){
   const reader=new FileReader();
   reader.onload=()=>{
     const cropImg=document.getElementById("cropImage");
+    const dialog=document.getElementById("cropDialog");
+
+    // iOS Safari can miss the image if Cropper starts before the selected
+    // photo has actually decoded. Initialise only after load/decode.
+    cropImg.onload=async ()=>{
+      try{
+        if(cropImg.decode) await cropImg.decode().catch(()=>{});
+      }catch(e){}
+
+      if(!dialog.open) dialog.showModal();
+
+      requestAnimationFrame(()=>{
+        requestAnimationFrame(()=>{
+          if(cropper) cropper.destroy();
+          cropper=new Cropper(cropImg,{
+            viewMode:1,
+            dragMode:"move",
+            autoCropArea:0.82,
+            responsive:true,
+            background:false,
+            movable:true,
+            zoomable:true,
+            rotatable:false,
+            scalable:false,
+            checkOrientation:true
+          });
+        });
+      });
+    };
+
+    cropImg.onerror=()=>{
+      if(!dialog.open) dialog.showModal();
+      document.querySelector(".crop-stage").innerHTML=
+        '<div class="crop-error">Photo could not be displayed. Close this window and try again.</div>';
+    };
+
     cropImg.src=reader.result;
 
-    const dialog=document.getElementById("cropDialog");
-    dialog.showModal();
-
-    // Wait until the image is laid out before starting Cropper.
-    setTimeout(()=>{
-      if(cropper) cropper.destroy();
-      cropper=new Cropper(cropImg,{
-        viewMode:1,
-        dragMode:"move",
-        autoCropArea:0.82,
-        responsive:true,
-        background:false,
-        movable:true,
-        zoomable:true,
-        rotatable:false,
-        scalable:false
-      });
-    },80);
+    // If Safari already has the image cached and complete, manually trigger setup.
+    if(cropImg.complete && cropImg.naturalWidth>0){
+      cropImg.onload();
+    }
   };
   reader.readAsDataURL(file);
 }
