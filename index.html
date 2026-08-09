@@ -188,9 +188,14 @@
           <strong>📷 Scan ingredient label</strong>
           <p>Take a clear photo of the ingredients panel. Intolearn will read the label, fill the ingredient list and flag useful ingredient families.</p>
         </div>
-        <label class="secondary file-label">Take / choose photo
-          <input id="ingredientPhoto" type="file" accept="image/*" capture="environment" />
-        </label>
+        <div class="photo-choice-row">
+          <label class="secondary file-label photo-choice">📷 Take photo
+            <input id="ingredientCamera" type="file" accept="image/*" capture="environment" />
+          </label>
+          <label class="secondary file-label photo-choice">🖼️ Photo library
+            <input id="ingredientLibrary" type="file" accept="image/*" />
+          </label>
+        </div>
         <div id="scanStatus" class="scan-status hidden"></div>
         <div id="photoPreview"></div>
         <div id="detectedFamilies" class="detected-families hidden">
@@ -235,6 +240,6 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <script src="app.js?v=31"></script>
+  <script src="app.js?v=32"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 
 const STORAGE_KEY = "intolearn_personal_v1";
-const APP_VERSION = "3.1";
+const APP_VERSION = "3.2";
 const mealTypes = [
   {key:"breakfast", label:"Breakfast", icon:"☀️"},
   {key:"lunch", label:"Lunch", icon:"🌤️"},
@@ -205,7 +205,8 @@ function resetMealForm(){
   document.getElementById("ingredients").value="";
   document.getElementById("foodNotes").value="";
   document.getElementById("foodTime").value=new Date().toTimeString().slice(0,5);
-  document.getElementById("ingredientPhoto").value="";
+  document.getElementById("ingredientCamera").value="";
+  document.getElementById("ingredientLibrary").value="";
   document.getElementById("photoPreview").innerHTML="";
   const scanStatus=document.getElementById("scanStatus");
   scanStatus.textContent="";
@@ -331,8 +332,7 @@ document.getElementById("mealDialog").addEventListener("cancel", e=>{
   closeMealDialog();
 });
 
-document.getElementById("ingredientPhoto").addEventListener("change",e=>{
-  const file=e.target.files?.[0];
+function handleIngredientPhoto(file){
   if(!file) return;
   const reader=new FileReader();
   reader.onload=()=>{
@@ -341,6 +341,12 @@ document.getElementById("ingredientPhoto").addEventListener("change",e=>{
   };
   reader.readAsDataURL(file);
   scanIngredientImage(file);
+}
+document.getElementById("ingredientCamera").addEventListener("change",e=>{
+  handleIngredientPhoto(e.target.files?.[0]);
+});
+document.getElementById("ingredientLibrary").addEventListener("change",e=>{
+  handleIngredientPhoto(e.target.files?.[0]);
 });
 document.getElementById("ingredients").addEventListener("input",e=>renderFamilies(e.target.value));
 
