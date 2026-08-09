@@ -1,6 +1,6 @@
 
 const STORAGE_KEY = "intolearn_personal_v1";
-const APP_VERSION = "3.2";
+const APP_VERSION = "3.3";
 const mealTypes = [
   {key:"breakfast", label:"Breakfast", icon:"☀️"},
   {key:"lunch", label:"Lunch", icon:"🌤️"},
@@ -205,8 +205,10 @@ function resetMealForm(){
   document.getElementById("ingredients").value="";
   document.getElementById("foodNotes").value="";
   document.getElementById("foodTime").value=new Date().toTimeString().slice(0,5);
-  document.getElementById("ingredientCamera").value="";
-  document.getElementById("ingredientLibrary").value="";
+  const camInput=document.getElementById("ingredientCamera");
+  const libInput=document.getElementById("ingredientLibrary");
+  if(camInput) camInput.value="";
+  if(libInput) libInput.value="";
   document.getElementById("photoPreview").innerHTML="";
   const scanStatus=document.getElementById("scanStatus");
   scanStatus.textContent="";

@@ -125,3 +125,5 @@ dialog input,dialog textarea{margin-bottom:14px}
 .photo-choice-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
 .photo-choice{display:flex;align-items:center;justify-content:center;text-align:center;min-height:48px;margin:0}
 @media(max-width:380px){.photo-choice-row{grid-template-columns:1fr}}
+
+.build-marker{margin-top:8px;font-size:10px;color:var(--muted);text-align:right;opacity:.65}
