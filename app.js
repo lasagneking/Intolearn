@@ -1,5 +1,6 @@
 
 const STORAGE_KEY = "intolearn_personal_v1";
+const APP_VERSION = "2.2";
 const mealTypes = [
   {key:"breakfast", label:"Breakfast", icon:"☀️"},
   {key:"lunch", label:"Lunch", icon:"🌤️"},
@@ -42,6 +43,7 @@ function showToast(message){
   toastTimer=setTimeout(()=>toast.classList.remove("show"),1800);
 }
 
+document.body.dataset.intolearnVersion = APP_VERSION;
 document.getElementById("todayDate").textContent = fmtDate(new Date());
 
 function renderMeals(){
@@ -115,8 +117,24 @@ function openMeal(meal, index=null){
 }
 
 function closeMealDialog(){
-  document.getElementById("foodName").classList.remove("field-error");
-  document.getElementById("mealDialog").close();
+  const nameEl = document.getElementById("foodName");
+  if(nameEl) nameEl.classList.remove("field-error");
+
+  const dialog = document.getElementById("mealDialog");
+  if(!dialog) return;
+
+  try {
+    if(typeof dialog.close === "function" && dialog.open){
+      dialog.close();
+    }
+  } catch(err) {
+    console.warn("Native dialog close failed", err);
+  }
+
+  // iOS/Safari fallback: make absolutely sure the modal disappears.
+  if(dialog.hasAttribute("open")){
+    dialog.removeAttribute("open");
+  }
 }
 
 function saveMeal(){
@@ -140,17 +158,26 @@ function saveMeal(){
     updatedAt:new Date().toISOString()
   };
 
-  if(editingIndex===null){
+  const isNew = editingIndex===null;
+
+  if(isNew){
     currentDay().meals[activeMeal].push(entry);
-    showToast("Entry saved");
   }else{
     currentDay().meals[activeMeal][editingIndex]=entry;
-    showToast("Changes saved");
   }
 
   saveState();
-  renderAll();
+
+  // Close first on iPhone/Safari so the user gets immediate visual confirmation
+  // that the action completed, even if a later render step is delayed.
   closeMealDialog();
+
+  // Refresh after the modal is gone.
+  try {
+    renderAll();
+  } finally {
+    showToast(isNew ? "Entry saved" : "Changes saved");
+  }
 }
 
 function deleteMeal(meal, index, fromDialog=true){
