@@ -1,6 +1,6 @@
 
 const STORAGE_KEY = "intolearn_personal_v1";
-const APP_VERSION = "4.1";
+const APP_VERSION = "4.2";
 const mealTypes = [
   {key:"breakfast", label:"Breakfast", icon:"☀️"},
   {key:"lunch", label:"Lunch", icon:"🌤️"},
@@ -34,6 +34,108 @@ const ingredientFamilies = [
   {name:"Chilli", terms:["chilli","chilis","chilli powder","chili","cayenne"]},
   {name:"Sweeteners", terms:["sorbitol","mannitol","xylitol","maltitol","erythritol","isomalt"]}
 ];
+
+
+const checkerTriggerTerms = {
+  "Cereals containing gluten":["wheat","spelt","khorasan","rye","barley","oat","oats","malt","gluten"],
+  "Wheat":["wheat","wheat flour","spelt","khorasan"],
+  "Milk / dairy":["milk","cream","whey","casein","caseinate","butter","cheese","yoghurt","yogurt","milk powder","skimmed milk"],
+  "Lactose":["lactose","milk","milk powder","whey","cream"],
+  "Egg":["egg","eggs","albumen","egg white","egg yolk"],
+  "Soya":["soya","soy","soybean","soybeans","soy lecithin","soya lecithin"],
+  "Peanuts":["peanut","peanuts","groundnut","groundnuts"],
+  "Tree nuts":["almond","almonds","hazelnut","hazelnuts","walnut","walnuts","cashew","cashews","cashew nut","cashew nuts","pecan","pecans","pistachio","pistachios","macadamia","macadamias","brazil nut","brazil nuts"],
+  "Sesame":["sesame","tahini"],
+  "Fish":["fish","salmon","tuna","cod","haddock","anchovy","anchovies"],
+  "Crustaceans":["crustacean","prawn","prawns","shrimp","shrimps","crab","lobster","crayfish"],
+  "Molluscs":["mollusc","molluscs","mussel","mussels","oyster","oysters","scallop","scallops","squid","octopus"],
+  "Celery":["celery","celeriac"],
+  "Mustard":["mustard"],
+  "Sulphites":["sulphite","sulphites","sulfite","sulfites","sulphur dioxide","sulfur dioxide"],
+  "Lupin":["lupin"],
+  "Onion":["onion","onions","onion powder"],
+  "Garlic":["garlic","garlic puree","garlic purée","garlic powder"],
+  "Chilli":["chilli","chili","cayenne","chilli powder"],
+  "Tomato":["tomato","tomatoes","tomato paste","tomato puree","tomato purée"],
+  "Legumes / pulses":["pea","peas","chickpea","chickpeas","lentil","lentils","bean","beans"],
+  "Sweeteners":["sorbitol","mannitol","xylitol","maltitol","erythritol","isomalt"]
+};
+
+function getSelectedCheckerTriggers(){
+  return [...document.querySelectorAll("#checkerTriggers button.selected")].map(b=>b.dataset.trigger);
+}
+function findCheckerMatches(text){
+  const hay=normaliseScanText(text);
+  return getSelectedCheckerTriggers().filter(name=>
+    (checkerTriggerTerms[name]||[]).some(term=>termPresent(hay,term))
+  );
+}
+function resetCheckerResult(){
+  document.getElementById("checkerStatus").className="scan-status hidden";
+  document.getElementById("checkerStatus").textContent="";
+  document.getElementById("checkerPreview").innerHTML="";
+  document.getElementById("checkerResult").className="checker-result hidden";
+  document.getElementById("checkerMatches").innerHTML="";
+  document.getElementById("checkerExtractedWrap").classList.add("hidden");
+  document.getElementById("checkerExtracted").classList.add("hidden");
+  document.getElementById("checkerExtracted").textContent="";
+}
+async function scanCheckerImage(file){
+  const status=document.getElementById("checkerStatus");
+  if(!getSelectedCheckerTriggers().length){
+    status.textContent="Select at least one ingredient to check first.";
+    status.className="scan-status error";
+    return;
+  }
+  if(!window.Tesseract){
+    status.textContent="Ingredient reader could not load. Check your connection and try again.";
+    status.className="scan-status error";
+    return;
+  }
+  status.textContent="Reading ingredient label…";
+  status.className="scan-status working";
+  try{
+    const result=await Tesseract.recognize(file,"eng",{
+      logger:m=>{
+        if(m.status==="recognizing text" && typeof m.progress==="number"){
+          status.textContent=`Reading ingredient label… ${Math.round(m.progress*100)}%`;
+        }
+      }
+    });
+    const cleaned=cleanOCRText(result.data.text||"");
+    if(!cleaned) throw new Error("No text detected");
+
+    const matches=findCheckerMatches(cleaned);
+    const resultBox=document.getElementById("checkerResult");
+    const icon=document.getElementById("checkerResultIcon");
+    const title=document.getElementById("checkerResultTitle");
+    const text=document.getElementById("checkerResultText");
+    const tags=document.getElementById("checkerMatches");
+
+    if(matches.length){
+      resultBox.className="checker-result match";
+      icon.textContent="!";
+      title.textContent="Selected ingredient detected";
+      text.textContent="Intolearn found one or more of the ingredients you selected in the scanned text.";
+      tags.innerHTML=matches.map(x=>`<span class="checker-match-tag">${escapeHtml(x)}</span>`).join("");
+    }else{
+      resultBox.className="checker-result clear";
+      icon.textContent="✓";
+      title.textContent="No selected trigger detected";
+      text.textContent="Intolearn did not find your selected ingredients in the text it managed to read. This is not a safety guarantee.";
+      tags.innerHTML="";
+    }
+
+    document.getElementById("checkerExtracted").textContent=cleaned;
+    document.getElementById("checkerExtractedWrap").classList.remove("hidden");
+    status.textContent="Scan complete — review the result and the original packaging.";
+    status.className="scan-status success";
+  }catch(err){
+    console.error(err);
+    status.textContent="I couldn't read that label clearly. Try a closer crop with good light.";
+    status.className="scan-status error";
+  }
+}
 
 function normaliseScanText(text){
   return (" " + String(text).toLowerCase() + " ")
@@ -134,6 +236,7 @@ let photoData = "";
 let toastTimer = null;
 let cropper = null;
 let pendingPhotoFile = null;
+let cropDestination = "meal";
 
 function blankState(){ return { days:{} }; }
 function loadState(){
@@ -340,7 +443,8 @@ document.getElementById("mealDialog").addEventListener("cancel", e=>{
   closeMealDialog();
 });
 
-function handleIngredientPhoto(file){
+function handleIngredientPhoto(file, destination="meal"){
+  cropDestination=destination;
   if(!file) return;
   pendingPhotoFile=file;
 
@@ -403,9 +507,16 @@ function blobToFile(blob,name="ingredient-crop.jpg"){
   return new File([blob],name,{type:blob.type||"image/jpeg"});
 }
 function processChosenImage(file, previewData){
+  closeCropDialog();
+
+  if(cropDestination==="checker"){
+    document.getElementById("checkerPreview").innerHTML=`<img src="${previewData}" alt="Ingredient label preview">`;
+    scanCheckerImage(file);
+    return;
+  }
+
   photoData=previewData;
   document.getElementById("photoPreview").innerHTML=`<img src="${previewData}" alt="Ingredient photo preview">`;
-  closeCropDialog();
   scanIngredientImage(file);
 }
 document.getElementById("confirmCropBtn").addEventListener("click",()=>{
@@ -438,12 +549,54 @@ document.getElementById("cropDialog").addEventListener("cancel",e=>{
 });
 
 document.getElementById("ingredientCamera").addEventListener("change",e=>{
-  handleIngredientPhoto(e.target.files?.[0]);
+  handleIngredientPhoto(e.target.files?.[0],"meal");
 });
 document.getElementById("ingredientLibrary").addEventListener("change",e=>{
-  handleIngredientPhoto(e.target.files?.[0]);
+  handleIngredientPhoto(e.target.files?.[0],"meal");
 });
 document.getElementById("ingredients").addEventListener("input",e=>renderFamilies(e.target.value));
+
+
+document.getElementById("openCheckerBtn").addEventListener("click",()=>{
+  resetCheckerResult();
+  document.getElementById("checkerCamera").value="";
+  document.getElementById("checkerLibrary").value="";
+  document.getElementById("checkerDialog").showModal();
+});
+function closeCheckerDialog(){
+  const d=document.getElementById("checkerDialog");
+  try{ if(d.open) d.close(); }catch(e){}
+  if(d.hasAttribute("open")) d.removeAttribute("open");
+}
+document.getElementById("closeCheckerBtn").addEventListener("click",closeCheckerDialog);
+document.getElementById("checkerDialog").addEventListener("cancel",e=>{e.preventDefault();closeCheckerDialog();});
+document.querySelectorAll("#checkerTriggers button").forEach(btn=>{
+  btn.addEventListener("click",()=>btn.classList.toggle("selected"));
+});
+document.getElementById("checkerCamera").addEventListener("change",e=>{
+  if(!getSelectedCheckerTriggers().length){
+    document.getElementById("checkerStatus").textContent="Select at least one ingredient to check first.";
+    document.getElementById("checkerStatus").className="scan-status error";
+    e.target.value="";
+    return;
+  }
+  handleIngredientPhoto(e.target.files?.[0],"checker");
+});
+document.getElementById("checkerLibrary").addEventListener("change",e=>{
+  if(!getSelectedCheckerTriggers().length){
+    document.getElementById("checkerStatus").textContent="Select at least one ingredient to check first.";
+    document.getElementById("checkerStatus").className="scan-status error";
+    e.target.value="";
+    return;
+  }
+  handleIngredientPhoto(e.target.files?.[0],"checker");
+});
+document.getElementById("checkerTextToggle").addEventListener("click",()=>{
+  const box=document.getElementById("checkerExtracted");
+  box.classList.toggle("hidden");
+  document.getElementById("checkerTextToggle").textContent=
+    box.classList.contains("hidden")?"Show scanned ingredient text":"Hide scanned ingredient text";
+});
 
 document.querySelectorAll("[data-choice]").forEach(group=>{
   group.querySelectorAll("button").forEach(btn=>{
