@@ -1,12 +1,95 @@
 
 const STORAGE_KEY = "intolearn_personal_v1";
-const APP_VERSION = "2.2";
+const APP_VERSION = "3.0";
 const mealTypes = [
   {key:"breakfast", label:"Breakfast", icon:"☀️"},
   {key:"lunch", label:"Lunch", icon:"🌤️"},
   {key:"dinner", label:"Dinner", icon:"🌙"},
   {key:"snacks", label:"Snacks & Drinks", icon:"🍎"}
 ];
+
+
+const ingredientFamilies = [
+  {name:"Milk / dairy", terms:["milk","cream","whey","casein","caseinate","butter","cheese","yoghurt","yogurt","lactose","milk powder","skimmed milk"]},
+  {name:"Wheat / gluten", terms:["wheat","wheat flour","gluten","barley","rye","malt","spelt"]},
+  {name:"Egg", terms:["egg","albumen","egg white","egg yolk"]},
+  {name:"Soya", terms:["soya","soy","soybean","soy lecithin"]},
+  {name:"Onion", terms:["onion","onions","onion powder"]},
+  {name:"Garlic", terms:["garlic","garlic purée","garlic puree","garlic powder"]},
+  {name:"Legumes / pulses", terms:["pea","peas","chickpea","lentil","lentils","bean","beans","lupin"]},
+  {name:"Peanuts", terms:["peanut","groundnut"]},
+  {name:"Tree nuts", terms:["almond","hazelnut","walnut","cashew","pecan","pistachio","macadamia","brazil nut"]},
+  {name:"Sesame", terms:["sesame","tahini"]},
+  {name:"Fish", terms:["fish","salmon","tuna","cod","haddock","anchovy"]},
+  {name:"Shellfish", terms:["prawn","shrimp","crab","lobster","mussel","oyster","scallop","crustacean","mollusc"]},
+  {name:"Mustard", terms:["mustard"]},
+  {name:"Celery", terms:["celery","celeriac"]},
+  {name:"Sulphites", terms:["sulphite","sulfite","sulphur dioxide","sulfur dioxide"]},
+  {name:"Tomato", terms:["tomato","tomatoes","tomato paste","tomato purée","tomato puree"]},
+  {name:"Chilli", terms:["chilli","chili","cayenne"]},
+  {name:"Sweeteners", terms:["sorbitol","mannitol","xylitol","maltitol","erythritol","isomalt"]}
+];
+
+function detectFamilies(text){
+  const hay=(" "+text.toLowerCase()+" ").replace(/\s+/g," ");
+  return ingredientFamilies
+    .filter(f=>f.terms.some(term=>hay.includes(term)))
+    .map(f=>f.name);
+}
+function renderFamilies(text){
+  const families=detectFamilies(text);
+  const box=document.getElementById("detectedFamilies");
+  const tags=document.getElementById("familyTags");
+  if(!families.length){
+    box.classList.add("hidden");
+    tags.innerHTML="";
+    return [];
+  }
+  tags.innerHTML=families.map(x=>`<span class="family-tag">${escapeHtml(x)}</span>`).join("");
+  box.classList.remove("hidden");
+  return families;
+}
+function cleanOCRText(text){
+  return text
+    .replace(/\r/g,"")
+    .replace(/[|]/g,"I")
+    .replace(/\n{2,}/g,"\n")
+    .replace(/^\s*(ingredients?|ingredlents?)\s*[:\-]?\s*/i,"")
+    .trim();
+}
+async function scanIngredientImage(file){
+  const status=document.getElementById("scanStatus");
+  if(!window.Tesseract){
+    status.textContent="Ingredient reader could not load. Check your internet connection and try again.";
+    status.className="scan-status error";
+    return;
+  }
+  status.textContent="Reading ingredient label… first scan can take a little longer.";
+  status.className="scan-status working";
+  try{
+    const result=await Tesseract.recognize(file,"eng",{
+      logger:m=>{
+        if(m.status==="recognizing text" && typeof m.progress==="number"){
+          status.textContent=`Reading ingredient label… ${Math.round(m.progress*100)}%`;
+        }
+      }
+    });
+    const cleaned=cleanOCRText(result.data.text||"");
+    if(!cleaned){
+      throw new Error("No text detected");
+    }
+    document.getElementById("ingredients").value=cleaned;
+    const families=renderFamilies(cleaned);
+    status.textContent=families.length
+      ? `Ingredients read. ${families.length} tracking ${families.length===1?"group":"groups"} detected — please review before saving.`
+      : "Ingredients read — please review the text before saving.";
+    status.className="scan-status success";
+  }catch(err){
+    console.error(err);
+    status.textContent="I couldn't read that label clearly. Try a closer, straighter photo with good light.";
+    status.className="scan-status error";
+  }
+}
 
 let state = loadState();
 let activeMeal = "breakfast";
@@ -89,6 +172,11 @@ function resetMealForm(){
   document.getElementById("foodTime").value=new Date().toTimeString().slice(0,5);
   document.getElementById("ingredientPhoto").value="";
   document.getElementById("photoPreview").innerHTML="";
+  const scanStatus=document.getElementById("scanStatus");
+  scanStatus.textContent="";
+  scanStatus.className="scan-status hidden";
+  document.getElementById("detectedFamilies").classList.add("hidden");
+  document.getElementById("familyTags").innerHTML="";
   photoData="";
 }
 
@@ -112,6 +200,7 @@ function openMeal(meal, index=null){
     document.getElementById("foodNotes").value=item.notes||"";
     photoData=item.photo||"";
     if(photoData) document.getElementById("photoPreview").innerHTML=`<img src="${photoData}" alt="Ingredient photo preview">`;
+    renderFamilies((item.ingredients||[]).join(" "));
   }
   document.getElementById("mealDialog").showModal();
 }
@@ -152,6 +241,7 @@ function saveMeal(){
     name,
     time:document.getElementById("foodTime").value,
     ingredients:parseIngredients(document.getElementById("ingredients").value),
+    families:detectFamilies(document.getElementById("ingredients").value),
     notes:document.getElementById("foodNotes").value.trim(),
     photo:photoData,
     createdAt: editingIndex===null ? new Date().toISOString() : (currentDay().meals[activeMeal][editingIndex]?.createdAt || new Date().toISOString()),
@@ -211,7 +301,9 @@ document.getElementById("ingredientPhoto").addEventListener("change",e=>{
     document.getElementById("photoPreview").innerHTML=`<img src="${photoData}" alt="Ingredient photo preview">`;
   };
   reader.readAsDataURL(file);
+  scanIngredientImage(file);
 });
+document.getElementById("ingredients").addEventListener("input",e=>renderFamilies(e.target.value));
 
 document.querySelectorAll("[data-choice]").forEach(group=>{
   group.querySelectorAll("button").forEach(btn=>{

@@ -45,3 +45,11 @@ The trend screen reports associations in diary data only and does not diagnose f
 - Existing meal entries can now be opened and edited.
 - Meal entries can be deleted, with confirmation.
 - Existing local diary data remains compatible.
+
+## v3 ingredient scanning
+
+- Browser-based OCR reads photographed ingredient labels automatically.
+- OCR text is inserted into the Ingredients field for review/editing.
+- Ingredient-family tagging detects dairy, wheat/gluten, egg, soya, onion, garlic, legumes, nuts, sesame, fish, shellfish, mustard, celery, sulphites, tomato, chilli and common polyol sweeteners.
+- Tracking groups are saved with meal entries for future trend analysis.
+- OCR runs in the browser. The first scan may take longer while the recognition engine loads.

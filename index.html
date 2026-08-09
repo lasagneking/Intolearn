@@ -185,13 +185,19 @@
 
       <div class="scan-panel">
         <div>
-          <strong>📷 Photograph ingredients</strong>
-          <p>Choose or take a photo. This prototype stores the image locally and lets you enter/edit the detected ingredients manually.</p>
+          <strong>📷 Scan ingredient label</strong>
+          <p>Take a clear photo of the ingredients panel. Intolearn will read the label, fill the ingredient list and flag useful ingredient families.</p>
         </div>
-        <label class="secondary file-label">Choose photo
+        <label class="secondary file-label">Take / choose photo
           <input id="ingredientPhoto" type="file" accept="image/*" capture="environment" />
         </label>
+        <div id="scanStatus" class="scan-status hidden"></div>
         <div id="photoPreview"></div>
+        <div id="detectedFamilies" class="detected-families hidden">
+          <strong>Worth tracking</strong>
+          <div id="familyTags" class="family-tags"></div>
+          <small>These are diary tags for pattern-finding, not a diagnosis.</small>
+        </div>
       </div>
 
       <label>Notes</label>
@@ -222,6 +228,7 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="app.js?v=22"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="app.js?v=30"></script>
 </body>
 </html>
