@@ -1,6 +1,6 @@
 
 const STORAGE_KEY = "intolearn_personal_v1";
-const APP_VERSION = "3.9";
+const APP_VERSION = "4.0";
 const mealTypes = [
   {key:"breakfast", label:"Breakfast", icon:"☀️"},
   {key:"lunch", label:"Lunch", icon:"🌤️"},
@@ -620,6 +620,93 @@ function renderMonthResults(){
 }
 document.getElementById("monthFilter").addEventListener("input",renderMonthResults);
 
+
+let reportDays=30;
+function reportDateKeys(days){
+  const end=new Date(); end.setHours(12,0,0,0);
+  const start=new Date(end); start.setDate(end.getDate()-days+1);
+  return Object.keys(state.days||{}).filter(k=>{
+    const d=new Date(k+"T12:00:00"); return d>=start && d<=end;
+  }).sort();
+}
+function reportMealIngredients(x){
+  const raw=(x?.ingredients||[]).join(" ");
+  return [...new Set([
+    ...(x?.allergens||[]),...(x?.families||[]),
+    ...detectUKAllergens(raw),...detectFamilies(raw)
+  ].filter(Boolean).map(v=>String(v).trim()))];
+}
+function renderReport(){
+  const keys=reportDateKeys(reportDays);
+  const keySet=new Set(keys);
+  let meals=0, scans=0, exits=0, symptomDays=0, comfortable=0;
+  const stats={};
+
+  keys.forEach(k=>{
+    const day=state.days[k]||{};
+    const symptomatic=(day.exit?.symptoms||[]).length>0 || ["Poor","Meh"].includes(day.exit?.feeling);
+    if(symptomatic) symptomDays++;
+    if(["Good","Great"].includes(day.exit?.feeling) && !symptomatic) comfortable++;
+    if(day.exit && Object.keys(day.exit).length) exits++;
+
+    const dayTags=new Set();
+    mealTypes.forEach(m=>(day.meals?.[m.key]||[]).forEach(x=>{
+      meals++; if(x.photoData) scans++;
+      reportMealIngredients(x).forEach(t=>dayTags.add(t));
+    }));
+    dayTags.forEach(tag=>{
+      stats[tag] ||= {days:0,symptomDays:0};
+      stats[tag].days++;
+      if(symptomatic) stats[tag].symptomDays++;
+    });
+  });
+
+  const start=new Date(); start.setDate(start.getDate()-reportDays+1);
+  document.getElementById("reportPeriod").textContent=
+    `${start.toLocaleDateString("en-GB",{day:"numeric",month:"short"})} – ${new Date().toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}`;
+
+  document.getElementById("reportSummary").innerHTML=[
+    ["📅",keys.length,"Days recorded"],["🍽️",meals,"Meals recorded"],
+    ["📷",scans,"Ingredient scans"],["📋",exits,"Exit Interviews"]
+  ].map(s=>`<div class="report-stat"><span>${s[0]}</span><strong>${s[1]}</strong><small>${s[2]}</small></div>`).join("");
+
+  const ranked=Object.entries(stats).map(([name,v])=>({...v,name,rate:v.days?v.symptomDays/v.days:0}))
+    .sort((a,b)=>b.rate-a.rate||b.days-a.days);
+
+  const connections=ranked.filter(x=>x.days>=2).slice(0,5);
+  document.getElementById("reportConnections").innerHTML=connections.length?connections.map(x=>`
+    <div class="connection-card">
+      <div class="connection-title"><strong>${escapeHtml(titleCase(x.name))}</strong><span class="connection-score">${Math.round(x.rate*100)}%</span></div>
+      <div class="connection-bar"><span style="width:${Math.round(x.rate*100)}%"></span></div>
+      <p>${x.symptomDays} of ${x.days} recorded exposure day${x.days===1?"":"s"} also had symptoms recorded.</p>
+    </div>`).join(""):`<p class="muted">Not enough repeated exposure data yet. Keep logging and this section will build automatically.</p>`;
+
+  const exposures=Object.entries(stats).map(([name,v])=>({name,...v})).sort((a,b)=>b.days-a.days).slice(0,8);
+  document.getElementById("reportExposures").innerHTML=exposures.length?exposures.map(x=>`
+    <div class="exposure-row"><strong>${escapeHtml(titleCase(x.name))}</strong><span>${x.days} day${x.days===1?"":"s"}</span></div>`).join(""):`<p class="muted">No ingredient groups recorded in this period yet.</p>`;
+
+  document.getElementById("reportExit").innerHTML=`
+    <div class="exit-grid">
+      <div class="exit-mini"><strong>${exits}</strong><small>Exit Interviews</small></div>
+      <div class="exit-mini"><strong>${symptomDays}</strong><small>Symptom days</small></div>
+      <div class="exit-mini"><strong>${comfortable}</strong><small>Comfortable days</small></div>
+      <div class="exit-mini"><strong>${keys.length?Math.round(symptomDays/keys.length*100):0}%</strong><small>Recorded days with symptoms</small></div>
+    </div>`;
+
+  const days=[];
+  for(let i=reportDays-1;i>=0;i--){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const k=dateKey(d), day=state.days?.[k];
+    const symptomatic=day && ((day.exit?.symptoms||[]).length>0 || ["Poor","Meh"].includes(day.exit?.feeling));
+    days.push(`<div class="report-day ${symptomatic?"symptom":day?"logged":""}" title="${k}">${d.getDate()}</div>`);
+  }
+  document.getElementById("reportTimeline").innerHTML=days.join("");
+}
+document.querySelectorAll(".range-btn").forEach(btn=>btn.addEventListener("click",()=>{
+  document.querySelectorAll(".range-btn").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active"); reportDays=Number(btn.dataset.days); renderReport();
+}));
+
 function renderTrends(){
   const ingredientStats={};
   Object.entries(state.days).forEach(([k,day])=>{
@@ -670,7 +757,7 @@ document.getElementById("clearDataBtn").onclick=()=>{
 };
 
 function renderAll(){
-  const jobs=[renderMeals,renderExit,renderWeek,renderMonth,renderTrends];
+  const jobs=[renderMeals,renderExit,renderWeek,renderMonth,renderTrends,renderReport];
   jobs.forEach(fn=>{
     try{ fn(); }
     catch(err){ console.error(fn.name+" failed",err); }

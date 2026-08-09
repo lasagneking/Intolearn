@@ -143,6 +143,48 @@
         </div>
       </section>
 
+
+      <section id="reportView" class="view">
+        <div class="report-hero">
+          <div>
+            <div class="eyebrow">MY INTOLEARN REPORT</div>
+            <h1>Food & symptom insights</h1>
+            <p id="reportPeriod">Your recorded diary</p>
+          </div>
+          <div class="report-brand"><strong>Intolearn</strong><span>by Lee Thumwood</span></div>
+        </div>
+
+        <div class="report-range">
+          <button type="button" class="range-btn active" data-days="30">30 days</button>
+          <button type="button" class="range-btn" data-days="7">7 days</button>
+          <button type="button" class="range-btn" data-days="90">90 days</button>
+        </div>
+
+        <div id="reportSummary" class="report-summary"></div>
+
+        <section class="report-panel report-highlight">
+          <div class="report-panel-head"><div><div class="eyebrow">POSSIBLE CONNECTIONS</div><h2>What may be worth noticing</h2></div><span>🔎</span></div>
+          <div id="reportConnections"></div>
+        </section>
+
+        <section class="report-panel">
+          <div class="report-panel-head"><div><div class="eyebrow">EXPOSURES</div><h2>Most frequently recorded</h2></div><span>🥛</span></div>
+          <div id="reportExposures"></div>
+        </section>
+
+        <section class="report-panel">
+          <div class="report-panel-head"><div><div class="eyebrow">EXIT INTERVIEW</div><h2>How the period felt</h2></div><span>📋</span></div>
+          <div id="reportExit"></div>
+        </section>
+
+        <section class="report-panel">
+          <div class="report-panel-head"><div><div class="eyebrow">DIARY TIMELINE</div><h2>Recorded days at a glance</h2></div><span>📅</span></div>
+          <div id="reportTimeline" class="report-timeline"></div>
+        </section>
+
+        <div class="report-disclaimer">Intolearn highlights patterns in your own diary. Associations do not prove that a food caused a symptom and this report is not a medical diagnosis.</div>
+      </section>
+
       <section id="trendsView" class="view">
         <div class="page-heading">
           <div class="eyebrow">TRENDS</div>
@@ -162,6 +204,7 @@
       <button data-view="weekView" class="nav-item"><span>📅</span><small>Week</small></button>
       <button data-view="monthView" class="nav-item"><span>🗓️</span><small>Month</small></button>
       <button data-view="trendsView" class="nav-item"><span>🔎</span><small>Trends</small></button>
+      <button data-view="reportView" class="nav-item"><span>📊</span><small>Report</small></button>
     </nav>
   </div>
 
@@ -264,6 +307,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
-  <script src="app.js?v=39"></script>
+  <script src="app.js?v=40"></script>
 </body>
 </html>
