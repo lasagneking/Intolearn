@@ -1,6 +1,6 @@
 
 const STORAGE_KEY = "intolearn_personal_v1";
-const APP_VERSION = "3.8";
+const APP_VERSION = "3.9";
 const mealTypes = [
   {key:"breakfast", label:"Breakfast", icon:"☀️"},
   {key:"lunch", label:"Lunch", icon:"🌤️"},
@@ -591,7 +591,7 @@ function renderMonthResults(){
           entries.forEach((x,index)=>{
             const hay=getMealSearchText(x,day);
             const matches=!q || terms.some(term=>hay.includes(term));
-            if(matches) results.push({k,m,x,index});
+            if(matches) results.push({k,m:m.key,x,index});
           });
         });
       });
