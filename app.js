@@ -9,35 +9,38 @@ const mealTypes = [
 
 let state = loadState();
 let activeMeal = "breakfast";
+let editingIndex = null;
 let photoData = "";
+let toastTimer = null;
 
-function blankState(){
-  return { days:{} };
-}
+function blankState(){ return { days:{} }; }
 function loadState(){
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || blankState(); }
   catch { return blankState(); }
 }
-function saveState(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
-function dateKey(d=new Date()){
-  return d.toISOString().slice(0,10);
-}
+function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function dateKey(d=new Date()){ return d.toISOString().slice(0,10); }
 function ensureDay(key=dateKey()){
-  if(!state.days[key]){
-    state.days[key]={ meals:{breakfast:[],lunch:[],dinner:[],snacks:[]}, exit:{} };
-  }
+  if(!state.days[key]) state.days[key]={ meals:{breakfast:[],lunch:[],dinner:[],snacks:[]}, exit:{} };
+  state.days[key].meals ||= {};
   mealTypes.forEach(m => state.days[key].meals[m.key] ||= []);
+  state.days[key].exit ||= {};
   return state.days[key];
 }
-function fmtDate(d){
-  return d.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"});
-}
-function parseIngredients(raw){
-  return raw.split(/[\n,;]+/).map(x=>x.trim()).filter(Boolean);
-}
+function fmtDate(d){ return d.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"}); }
+function parseIngredients(raw){ return raw.split(/[\n,;]+/).map(x=>x.trim()).filter(Boolean); }
 function currentDay(){ return ensureDay(); }
+function escapeHtml(s=""){
+  return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
+}
+function titleCase(s){return s.replace(/\b\w/g,c=>c.toUpperCase())}
+function showToast(message){
+  const toast=document.getElementById("toast");
+  toast.textContent=message;
+  toast.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>toast.classList.remove("show"),1800);
+}
 
 document.getElementById("todayDate").textContent = fmtDate(new Date());
 
@@ -52,24 +55,32 @@ function renderMeals(){
     card.innerHTML=`
       <div class="meal-head">
         <div><span class="icon-tile">${m.icon}</span><div><h3>${m.label}</h3><p>${items.length ? items.length+" entr"+(items.length===1?"y":"ies") : "Nothing logged yet"}</p></div></div>
-        <button class="add-btn" data-meal="${m.key}">+ Add</button>
+        <button class="add-btn" data-meal="${m.key}" type="button">+ Add</button>
       </div>
       <div class="entry-list">
         ${items.map((it,i)=>`
           <div class="food-entry">
-            <strong>${escapeHtml(it.name)}</strong>
-            <small>${it.time || ""}${it.notes ? " · "+escapeHtml(it.notes):""}</small>
-            <div class="ingredient-tags">${(it.ingredients||[]).slice(0,8).map(x=>`<span class="ingredient-tag">${escapeHtml(x)}</span>`).join("")}</div>
+            <div class="food-entry-main">
+              <strong>${escapeHtml(it.name)}</strong>
+              <small>${it.time || ""}${it.notes ? " · "+escapeHtml(it.notes):""}</small>
+              <div class="ingredient-tags">${(it.ingredients||[]).slice(0,8).map(x=>`<span class="ingredient-tag">${escapeHtml(x)}</span>`).join("")}</div>
+            </div>
+            <div class="entry-actions">
+              <button class="entry-action view-entry" type="button" data-meal="${m.key}" data-index="${i}">View / Edit</button>
+              <button class="entry-action delete delete-entry" type="button" data-meal="${m.key}" data-index="${i}">Delete</button>
+            </div>
           </div>`).join("")}
       </div>`;
     wrap.appendChild(card);
   });
+
   document.querySelectorAll(".add-btn").forEach(btn=>btn.onclick=()=>openMeal(btn.dataset.meal));
+  document.querySelectorAll(".view-entry").forEach(btn=>btn.onclick=()=>openMeal(btn.dataset.meal, Number(btn.dataset.index)));
+  document.querySelectorAll(".delete-entry").forEach(btn=>btn.onclick=()=>deleteMeal(btn.dataset.meal, Number(btn.dataset.index), false));
 }
-function openMeal(meal){
-  activeMeal=meal;
-  const meta=mealTypes.find(x=>x.key===meal);
-  document.getElementById("mealDialogTitle").textContent=meta.label;
+
+function resetMealForm(){
+  document.getElementById("foodName").classList.remove("field-error");
   document.getElementById("foodName").value="";
   document.getElementById("ingredients").value="";
   document.getElementById("foodNotes").value="";
@@ -77,28 +88,91 @@ function openMeal(meal){
   document.getElementById("ingredientPhoto").value="";
   document.getElementById("photoPreview").innerHTML="";
   photoData="";
-  document.getElementById("mealDialog").showModal();
-}
-function escapeHtml(s=""){
-  return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
 }
 
-document.getElementById("mealForm").addEventListener("submit",e=>{
-  if(e.submitter && e.submitter.value==="cancel") return;
-  e.preventDefault();
-  const name=document.getElementById("foodName").value.trim();
-  if(!name) return;
-  const day=currentDay();
-  day.meals[activeMeal].push({
+function openMeal(meal, index=null){
+  activeMeal=meal;
+  editingIndex=index;
+  const meta=mealTypes.find(x=>x.key===meal);
+  resetMealForm();
+
+  document.getElementById("mealDialogTitle").textContent=meta.label;
+  document.getElementById("mealDialogEyebrow").textContent=index===null ? "ADD ENTRY" : "VIEW / EDIT ENTRY";
+  document.getElementById("saveMealBtn").textContent=index===null ? "Save entry" : "Save changes";
+  document.getElementById("deleteMealBtn").classList.toggle("hidden", index===null);
+
+  if(index!==null){
+    const item=currentDay().meals[meal][index];
+    if(!item) return;
+    document.getElementById("foodName").value=item.name||"";
+    document.getElementById("foodTime").value=item.time||"";
+    document.getElementById("ingredients").value=(item.ingredients||[]).join("\n");
+    document.getElementById("foodNotes").value=item.notes||"";
+    photoData=item.photo||"";
+    if(photoData) document.getElementById("photoPreview").innerHTML=`<img src="${photoData}" alt="Ingredient photo preview">`;
+  }
+  document.getElementById("mealDialog").showModal();
+}
+
+function closeMealDialog(){
+  document.getElementById("foodName").classList.remove("field-error");
+  document.getElementById("mealDialog").close();
+}
+
+function saveMeal(){
+  const nameEl=document.getElementById("foodName");
+  const name=nameEl.value.trim();
+  if(!name){
+    nameEl.classList.add("field-error");
+    nameEl.focus();
+    showToast("Please enter a food or product name.");
+    return;
+  }
+  nameEl.classList.remove("field-error");
+
+  const entry={
     name,
     time:document.getElementById("foodTime").value,
     ingredients:parseIngredients(document.getElementById("ingredients").value),
     notes:document.getElementById("foodNotes").value.trim(),
     photo:photoData,
-    createdAt:new Date().toISOString()
-  });
-  saveState(); renderAll();
-  document.getElementById("mealDialog").close();
+    createdAt: editingIndex===null ? new Date().toISOString() : (currentDay().meals[activeMeal][editingIndex]?.createdAt || new Date().toISOString()),
+    updatedAt:new Date().toISOString()
+  };
+
+  if(editingIndex===null){
+    currentDay().meals[activeMeal].push(entry);
+    showToast("Entry saved");
+  }else{
+    currentDay().meals[activeMeal][editingIndex]=entry;
+    showToast("Changes saved");
+  }
+
+  saveState();
+  renderAll();
+  closeMealDialog();
+}
+
+function deleteMeal(meal, index, fromDialog=true){
+  const item=currentDay().meals[meal]?.[index];
+  if(!item) return;
+  if(!confirm(`Delete "${item.name}"?`)) return;
+  currentDay().meals[meal].splice(index,1);
+  saveState();
+  renderAll();
+  if(fromDialog && document.getElementById("mealDialog").open) closeMealDialog();
+  showToast("Entry deleted");
+}
+
+document.getElementById("saveMealBtn").addEventListener("click", saveMeal);
+document.getElementById("cancelMealBtn").addEventListener("click", closeMealDialog);
+document.getElementById("closeMealDialog").addEventListener("click", closeMealDialog);
+document.getElementById("deleteMealBtn").addEventListener("click", ()=>deleteMeal(activeMeal, editingIndex, true));
+
+document.getElementById("mealForm").addEventListener("submit", e=>e.preventDefault());
+document.getElementById("mealDialog").addEventListener("cancel", e=>{
+  e.preventDefault();
+  closeMealDialog();
 });
 
 document.getElementById("ingredientPhoto").addEventListener("change",e=>{
@@ -135,7 +209,7 @@ document.getElementById("saveExitBtn").onclick=()=>{
     notes:document.getElementById("exitNotes").value.trim(),
     updatedAt:new Date().toISOString()
   };
-  saveState(); renderAll();
+  saveState(); renderAll(); showToast("Exit Interview saved");
 };
 
 function renderExit(){
@@ -244,7 +318,6 @@ function renderTrends(){
     </div>
   `).join(""):`<div class="card"><h3>Not enough data yet</h3><p class="muted">Log ingredients and symptoms over several days and Intolearn will start surfacing repeated associations here.</p></div>`;
 }
-function titleCase(s){return s.replace(/\b\w/g,c=>c.toUpperCase())}
 
 document.querySelectorAll(".nav-item").forEach(btn=>{
   btn.onclick=()=>{
@@ -264,11 +337,9 @@ document.getElementById("exportDataBtn").onclick=()=>{
 };
 document.getElementById("clearDataBtn").onclick=()=>{
   if(confirm("Clear all Intolearn data stored in this browser?")){
-    localStorage.removeItem(STORAGE_KEY); state=blankState(); renderAll();
+    localStorage.removeItem(STORAGE_KEY); state=blankState(); ensureDay(); renderAll(); showToast("Local data cleared");
   }
 };
 
-function renderAll(){
-  renderMeals(); renderExit(); renderWeek(); renderMonth(); renderTrends();
-}
+function renderAll(){ renderMeals(); renderExit(); renderWeek(); renderMonth(); renderTrends(); }
 ensureDay(); renderAll();

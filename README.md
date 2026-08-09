@@ -36,3 +36,12 @@ http://localhost:8000
 Ingredient photos are captured and stored locally, but OCR is not yet connected. The ingredients can be entered/edited manually after taking the photo. Real OCR can be added in the next stage using a browser OCR library or a hosted vision service.
 
 The trend screen reports associations in diary data only and does not diagnose food intolerance.
+
+
+## v2 interaction fixes
+
+- Save now closes the meal entry dialog and shows a confirmation toast.
+- X and Cancel always close without triggering required-field validation.
+- Existing meal entries can now be opened and edited.
+- Meal entries can be deleted, with confirmation.
+- Existing local diary data remains compatible.

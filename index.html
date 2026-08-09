@@ -165,17 +165,17 @@
   </div>
 
   <dialog id="mealDialog">
-    <form method="dialog" id="mealForm">
+    <form id="mealForm" novalidate>
       <div class="dialog-head">
         <div>
-          <div class="eyebrow">ADD ENTRY</div>
+          <div class="eyebrow" id="mealDialogEyebrow">ADD ENTRY</div>
           <h2 id="mealDialogTitle">Breakfast</h2>
         </div>
-        <button value="cancel" class="icon-button">✕</button>
+        <button type="button" class="icon-button" id="closeMealDialog" aria-label="Close">✕</button>
       </div>
 
       <label>Food or product</label>
-      <input id="foodName" required placeholder="e.g. Cereal with milk" />
+      <input id="foodName" placeholder="e.g. Cereal with milk" />
 
       <label>Time</label>
       <input id="foodTime" type="time" />
@@ -197,7 +197,11 @@
       <label>Notes</label>
       <textarea id="foodNotes" rows="2" placeholder="Optional notes"></textarea>
 
-      <button class="primary wide" id="saveMealBtn" value="default">Save entry</button>
+      <div class="dialog-actions">
+        <button type="button" class="danger hidden" id="deleteMealBtn">Delete entry</button>
+        <button type="button" class="secondary" id="cancelMealBtn">Cancel</button>
+        <button type="button" class="primary" id="saveMealBtn">Save entry</button>
+      </div>
     </form>
   </dialog>
 
@@ -215,6 +219,8 @@
       <button type="button" class="danger wide" id="clearDataBtn">Clear all local data</button>
     </form>
   </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="app.js"></script>
 </body>
