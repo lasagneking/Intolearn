@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#eef4ef" />
+  <title>Intolearn by Lee Thumwood</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="brand">Intolearn</div>
+        <div class="byline">by Lee Thumwood</div>
+      </div>
+      <button class="icon-button" id="settingsBtn" aria-label="Settings">⚙️</button>
+    </header>
+
+    <main>
+      <section id="todayView" class="view active">
+        <div class="hero-card">
+          <div>
+            <div class="eyebrow">TODAY</div>
+            <h1 id="todayDate">Today</h1>
+            <p>Small entries, clearer patterns.</p>
+          </div>
+          <div class="mood-orb" id="summaryMood">🙂</div>
+        </div>
+
+        <div class="section-title-row">
+          <div>
+            <h2>Food diary</h2>
+            <p>Tap any meal to add food or scan ingredients.</p>
+          </div>
+        </div>
+
+        <div id="mealSections" class="meal-grid"></div>
+
+        <section class="card exit-card">
+          <div class="card-head">
+            <div>
+              <span class="icon-tile">🚪</span>
+              <div>
+                <h3>Exit Interview</h3>
+                <p>Quick daily check-in</p>
+              </div>
+            </div>
+            <span class="pill" id="exitStatus">Not completed</span>
+          </div>
+
+          <div class="field-block">
+            <label>Visits today</label>
+            <div class="choice-row" data-choice="frequency">
+              <button>0</button><button>1</button><button>2</button><button>3</button><button>4</button><button>5+</button>
+            </div>
+          </div>
+
+          <div class="field-block">
+            <label>Consistency</label>
+            <div class="choice-row emoji-row" data-choice="consistency">
+              <button data-value="Very loose">💧<span>Very loose</span></button>
+              <button data-value="Loose">🫠<span>Loose</span></button>
+              <button data-value="Normal">🟤<span>Normal</span></button>
+              <button data-value="Firm">🧱<span>Firm</span></button>
+            </div>
+          </div>
+
+          <div class="field-block">
+            <label>Urgency</label>
+            <div class="choice-row emoji-row" data-choice="urgency">
+              <button data-value="None">😌<span>None</span></button>
+              <button data-value="Mild">🙂<span>Mild</span></button>
+              <button data-value="Strong">😬<span>Strong</span></button>
+              <button data-value="Very strong">🚨<span>Very strong</span></button>
+            </div>
+          </div>
+
+          <div class="field-block">
+            <label>How do you feel?</label>
+            <div class="choice-row emoji-row" data-choice="feeling">
+              <button data-value="Great">😄<span>Great</span></button>
+              <button data-value="Fine">🙂<span>Fine</span></button>
+              <button data-value="Meh">😐<span>Meh</span></button>
+              <button data-value="Poor">😣<span>Poor</span></button>
+            </div>
+          </div>
+
+          <div class="field-block">
+            <label>Symptoms</label>
+            <div class="chip-wrap" id="symptomChips">
+              <button class="chip">Bloating</button>
+              <button class="chip">Cramping</button>
+              <button class="chip">Gas</button>
+              <button class="chip">Nausea</button>
+              <button class="chip">Reflux</button>
+              <button class="chip">Pain</button>
+              <button class="chip">Fatigue</button>
+            </div>
+          </div>
+
+          <div class="field-block">
+            <label for="exitNotes">Notes</label>
+            <textarea id="exitNotes" rows="3" placeholder="Anything worth remembering today?"></textarea>
+          </div>
+
+          <button class="primary wide" id="saveExitBtn">Save Exit Interview</button>
+        </section>
+      </section>
+
+      <section id="weekView" class="view">
+        <div class="page-heading">
+          <div class="eyebrow">WEEK</div>
+          <h1>This week</h1>
+          <p>Your recent entries at a glance.</p>
+        </div>
+        <div class="week-strip" id="weekStrip"></div>
+        <div class="card stats-card">
+          <h3>Weekly summary</h3>
+          <div class="stats-grid" id="weeklyStats"></div>
+        </div>
+        <div class="card">
+          <h3>Recent diary</h3>
+          <div id="weekEntries" class="timeline-list"></div>
+        </div>
+      </section>
+
+      <section id="monthView" class="view">
+        <div class="page-heading">
+          <div class="eyebrow">MONTH</div>
+          <h1>This month</h1>
+          <p>Spot good days, rough days and repeated foods.</p>
+        </div>
+        <div class="filter-bar">
+          <input id="monthFilter" placeholder="Filter by food, ingredient or symptom" />
+        </div>
+        <div class="calendar-grid" id="monthCalendar"></div>
+        <div class="card">
+          <h3>Filtered entries</h3>
+          <div id="monthResults" class="timeline-list"></div>
+        </div>
+      </section>
+
+      <section id="trendsView" class="view">
+        <div class="page-heading">
+          <div class="eyebrow">TRENDS</div>
+          <h1>What may be worth noticing</h1>
+          <p>Intolearn highlights associations — not diagnoses.</p>
+        </div>
+        <div id="trendCards" class="trend-stack"></div>
+        <div class="card helper-card">
+          <h3>How this works</h3>
+          <p>Ingredients are compared with symptom days in your local diary. The more consistently you log, the more useful this becomes.</p>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav">
+      <button data-view="todayView" class="nav-item active"><span>🏠</span><small>Today</small></button>
+      <button data-view="weekView" class="nav-item"><span>📅</span><small>Week</small></button>
+      <button data-view="monthView" class="nav-item"><span>🗓️</span><small>Month</small></button>
+      <button data-view="trendsView" class="nav-item"><span>🔎</span><small>Trends</small></button>
+    </nav>
+  </div>
+
+  <dialog id="mealDialog">
+    <form method="dialog" id="mealForm">
+      <div class="dialog-head">
+        <div>
+          <div class="eyebrow">ADD ENTRY</div>
+          <h2 id="mealDialogTitle">Breakfast</h2>
+        </div>
+        <button value="cancel" class="icon-button">✕</button>
+      </div>
+
+      <label>Food or product</label>
+      <input id="foodName" required placeholder="e.g. Cereal with milk" />
+
+      <label>Time</label>
+      <input id="foodTime" type="time" />
+
+      <label>Ingredients</label>
+      <textarea id="ingredients" rows="4" placeholder="Type ingredients, one per line or comma separated"></textarea>
+
+      <div class="scan-panel">
+        <div>
+          <strong>📷 Photograph ingredients</strong>
+          <p>Choose or take a photo. This prototype stores the image locally and lets you enter/edit the detected ingredients manually.</p>
+        </div>
+        <label class="secondary file-label">Choose photo
+          <input id="ingredientPhoto" type="file" accept="image/*" capture="environment" />
+        </label>
+        <div id="photoPreview"></div>
+      </div>
+
+      <label>Notes</label>
+      <textarea id="foodNotes" rows="2" placeholder="Optional notes"></textarea>
+
+      <button class="primary wide" id="saveMealBtn" value="default">Save entry</button>
+    </form>
+  </dialog>
+
+  <dialog id="settingsDialog">
+    <form method="dialog">
+      <div class="dialog-head">
+        <div>
+          <div class="eyebrow">PERSONAL APP</div>
+          <h2>Intolearn settings</h2>
+        </div>
+        <button value="cancel" class="icon-button">✕</button>
+      </div>
+      <p class="muted">Your diary is stored only in this browser on this device.</p>
+      <button type="button" class="secondary wide" id="exportDataBtn">Export diary as JSON</button>
+      <button type="button" class="danger wide" id="clearDataBtn">Clear all local data</button>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>

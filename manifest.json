@@ -1,0 +1,9 @@
+{
+  "name": "Intolearn by Lee Thumwood",
+  "short_name": "Intolearn",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#eef4ef",
+  "theme_color": "#2f6e53",
+  "icons": []
+}
