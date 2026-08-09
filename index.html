@@ -194,9 +194,15 @@
         <div id="scanStatus" class="scan-status hidden"></div>
         <div id="photoPreview"></div>
         <div id="detectedFamilies" class="detected-families hidden">
-          <strong>Worth tracking</strong>
-          <div id="familyTags" class="family-tags"></div>
-          <small>These are diary tags for pattern-finding, not a diagnosis.</small>
+          <div id="allergenSection" class="tracking-section hidden">
+            <strong>UK allergens detected</strong>
+            <div id="allergenTags" class="family-tags allergen-tags"></div>
+          </div>
+          <div id="otherTrackingSection" class="tracking-section hidden">
+            <strong>Other ingredients worth tracking</strong>
+            <div id="familyTags" class="family-tags"></div>
+          </div>
+          <small>Detected from the scanned ingredient text. Please review before saving.</small>
         </div>
       </div>
 
@@ -229,6 +235,6 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <script src="app.js?v=30"></script>
+  <script src="app.js?v=31"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 
 const STORAGE_KEY = "intolearn_personal_v1";
-const APP_VERSION = "3.0";
+const APP_VERSION = "3.1";
 const mealTypes = [
   {key:"breakfast", label:"Breakfast", icon:"☀️"},
   {key:"lunch", label:"Lunch", icon:"🌤️"},
@@ -9,45 +9,79 @@ const mealTypes = [
 ];
 
 
+const ukAllergens = [
+  {name:"Cereals containing gluten", terms:["wheat","spelt","khorasan","rye","barley","oats","oat","malt"]},
+  {name:"Crustaceans", terms:["crustacean","prawn","prawns","shrimp","shrimps","crab","lobster","crayfish"]},
+  {name:"Egg", terms:["egg","eggs","albumen","egg white","egg yolk"]},
+  {name:"Fish", terms:["fish","salmon","tuna","cod","haddock","anchovy","anchovies"]},
+  {name:"Peanuts", terms:["peanut","peanuts","groundnut","groundnuts"]},
+  {name:"Soya", terms:["soya","soy","soybean","soybeans","soy lecithin","soya lecithin"]},
+  {name:"Milk", terms:["milk","cream","whey","casein","caseinate","butter","cheese","yoghurt","yogurt","lactose","milk powder","skimmed milk"]},
+  {name:"Tree nuts", terms:["almond","almonds","hazelnut","hazelnuts","walnut","walnuts","cashew","cashews","cashew nut","cashew nuts","pecan","pecans","pistachio","pistachios","macadamia","macadamias","brazil nut","brazil nuts"]},
+  {name:"Celery", terms:["celery","celeriac"]},
+  {name:"Mustard", terms:["mustard"]},
+  {name:"Sesame", terms:["sesame","tahini"]},
+  {name:"Sulphites", terms:["sulphite","sulphites","sulfite","sulfites","sulphur dioxide","sulfur dioxide"]},
+  {name:"Lupin", terms:["lupin"]},
+  {name:"Molluscs", terms:["mollusc","molluscs","mussel","mussels","oyster","oysters","scallop","scallops","squid","octopus"]}
+];
+
 const ingredientFamilies = [
-  {name:"Milk / dairy", terms:["milk","cream","whey","casein","caseinate","butter","cheese","yoghurt","yogurt","lactose","milk powder","skimmed milk"]},
-  {name:"Wheat / gluten", terms:["wheat","wheat flour","gluten","barley","rye","malt","spelt"]},
-  {name:"Egg", terms:["egg","albumen","egg white","egg yolk"]},
-  {name:"Soya", terms:["soya","soy","soybean","soy lecithin"]},
   {name:"Onion", terms:["onion","onions","onion powder"]},
   {name:"Garlic", terms:["garlic","garlic purée","garlic puree","garlic powder"]},
-  {name:"Legumes / pulses", terms:["pea","peas","chickpea","lentil","lentils","bean","beans","lupin"]},
-  {name:"Peanuts", terms:["peanut","groundnut"]},
-  {name:"Tree nuts", terms:["almond","hazelnut","walnut","cashew","pecan","pistachio","macadamia","brazil nut"]},
-  {name:"Sesame", terms:["sesame","tahini"]},
-  {name:"Fish", terms:["fish","salmon","tuna","cod","haddock","anchovy"]},
-  {name:"Shellfish", terms:["prawn","shrimp","crab","lobster","mussel","oyster","scallop","crustacean","mollusc"]},
-  {name:"Mustard", terms:["mustard"]},
-  {name:"Celery", terms:["celery","celeriac"]},
-  {name:"Sulphites", terms:["sulphite","sulfite","sulphur dioxide","sulfur dioxide"]},
+  {name:"Legumes / pulses", terms:["pea","peas","chickpea","chickpeas","lentil","lentils","bean","beans"]},
   {name:"Tomato", terms:["tomato","tomatoes","tomato paste","tomato purée","tomato puree"]},
-  {name:"Chilli", terms:["chilli","chili","cayenne"]},
+  {name:"Chilli", terms:["chilli","chilis","chilli powder","chili","cayenne"]},
   {name:"Sweeteners", terms:["sorbitol","mannitol","xylitol","maltitol","erythritol","isomalt"]}
 ];
 
+function normaliseScanText(text){
+  return (" " + String(text).toLowerCase() + " ")
+    .replace(/[()[\]{}:;,./\\\-_%]+/g," ")
+    .replace(/\s+/g," ")
+    .trim();
+}
+
+function termPresent(hay, term){
+  const normalTerm = normaliseScanText(term);
+  return (" " + hay + " ").includes(" " + normalTerm + " ");
+}
+
+function detectUKAllergens(text){
+  const hay=normaliseScanText(text);
+  return ukAllergens
+    .filter(a=>a.terms.some(term=>termPresent(hay,term)))
+    .map(a=>a.name);
+}
+
 function detectFamilies(text){
-  const hay=(" "+text.toLowerCase()+" ").replace(/\s+/g," ");
+  const hay=normaliseScanText(text);
   return ingredientFamilies
-    .filter(f=>f.terms.some(term=>hay.includes(term)))
+    .filter(f=>f.terms.some(term=>termPresent(hay,term)))
     .map(f=>f.name);
 }
 function renderFamilies(text){
+  const allergens=detectUKAllergens(text);
   const families=detectFamilies(text);
+
   const box=document.getElementById("detectedFamilies");
-  const tags=document.getElementById("familyTags");
-  if(!families.length){
+  const allergenSection=document.getElementById("allergenSection");
+  const allergenTags=document.getElementById("allergenTags");
+  const otherSection=document.getElementById("otherTrackingSection");
+  const familyTags=document.getElementById("familyTags");
+
+  allergenTags.innerHTML=allergens.map(x=>`<span class="allergen-tag">${escapeHtml(x)}</span>`).join("");
+  familyTags.innerHTML=families.map(x=>`<span class="family-tag">${escapeHtml(x)}</span>`).join("");
+
+  allergenSection.classList.toggle("hidden", allergens.length===0);
+  otherSection.classList.toggle("hidden", families.length===0);
+
+  if(!allergens.length && !families.length){
     box.classList.add("hidden");
-    tags.innerHTML="";
-    return [];
+  }else{
+    box.classList.remove("hidden");
   }
-  tags.innerHTML=families.map(x=>`<span class="family-tag">${escapeHtml(x)}</span>`).join("");
-  box.classList.remove("hidden");
-  return families;
+  return {allergens,families};
 }
 function cleanOCRText(text){
   return text
@@ -79,9 +113,10 @@ async function scanIngredientImage(file){
       throw new Error("No text detected");
     }
     document.getElementById("ingredients").value=cleaned;
-    const families=renderFamilies(cleaned);
-    status.textContent=families.length
-      ? `Ingredients read. ${families.length} tracking ${families.length===1?"group":"groups"} detected — please review before saving.`
+    const detected=renderFamilies(cleaned);
+    const totalDetected=detected.allergens.length + detected.families.length;
+    status.textContent=totalDetected
+      ? `Ingredients read. ${detected.allergens.length} UK allergen ${detected.allergens.length===1?"group":"groups"} and ${detected.families.length} other tracking ${detected.families.length===1?"group":"groups"} detected — please review before saving.`
       : "Ingredients read — please review the text before saving.";
     status.className="scan-status success";
   }catch(err){
@@ -177,6 +212,9 @@ function resetMealForm(){
   scanStatus.className="scan-status hidden";
   document.getElementById("detectedFamilies").classList.add("hidden");
   document.getElementById("familyTags").innerHTML="";
+  document.getElementById("allergenTags").innerHTML="";
+  document.getElementById("allergenSection").classList.add("hidden");
+  document.getElementById("otherTrackingSection").classList.add("hidden");
   photoData="";
 }
 
@@ -242,6 +280,7 @@ function saveMeal(){
     time:document.getElementById("foodTime").value,
     ingredients:parseIngredients(document.getElementById("ingredients").value),
     families:detectFamilies(document.getElementById("ingredients").value),
+    allergens:detectUKAllergens(document.getElementById("ingredients").value),
     notes:document.getElementById("foodNotes").value.trim(),
     photo:photoData,
     createdAt: editingIndex===null ? new Date().toISOString() : (currentDay().meals[activeMeal][editingIndex]?.createdAt || new Date().toISOString()),

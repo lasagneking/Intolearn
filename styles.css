@@ -115,3 +115,8 @@ dialog input,dialog textarea{margin-bottom:14px}
 .detected-families small{display:block;color:var(--muted);margin-top:8px;line-height:1.35}
 .family-tags{display:flex;flex-wrap:wrap;gap:7px}
 .family-tag{padding:7px 9px;border-radius:999px;background:var(--primary-soft);color:var(--primary);font-size:11px;font-weight:800}
+
+/* v3.1 UK allergen priority */
+.tracking-section + .tracking-section{margin-top:12px}
+.tracking-section>strong{display:block;margin-bottom:8px}
+.allergen-tag{padding:7px 9px;border-radius:999px;background:#f7eadf;color:#7d4b26;font-size:11px;font-weight:900;border:1px solid #ead0bb}
