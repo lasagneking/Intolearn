@@ -1,6 +1,6 @@
 
 const STORAGE_KEY = "intolearn_personal_v1";
-const APP_VERSION = "3.6";
+const APP_VERSION = "3.7";
 const mealTypes = [
   {key:"breakfast", label:"Breakfast", icon:"☀️"},
   {key:"lunch", label:"Lunch", icon:"🌤️"},
@@ -523,47 +523,88 @@ function dayTone(day){
   return "";
 }
 function renderMonth(){
-  document.getElementById("monthCalendar").innerHTML=monthDates().map(d=>{
-    if(!d) return `<div></div>`;
-    const day=state.days[dateKey(d)];
-    return `<div class="cal-day ${dayTone(day)}"><strong>${d.getDate()}</strong><span>${day? "•":""}</span></div>`;
-  }).join("");
+  const calendar=document.getElementById("monthCalendar");
+  if(calendar){
+    try{
+      const dates=monthDates();
+      calendar.innerHTML=dates.map(d=>{
+        if(!d) return `<div></div>`;
+        const day=state.days?.[dateKey(d)];
+        return `<div class="cal-day ${dayTone(day)}"><strong>${d.getDate()}</strong><span>${day? "•":""}</span></div>`;
+      }).join("");
+    }catch(err){
+      console.error("Month calendar render failed",err);
+      calendar.innerHTML=`<div class="muted" style="grid-column:1/-1;padding:12px">Calendar could not be rendered.</div>`;
+    }
+  }
   renderMonthResults();
 }
+
+function getMealSearchText(x,day){
+  const rawIngredients=(x?.ingredients||[]).join(" ");
+  // Recalculate these from saved text so meals logged before the structured
+  // allergen fields existed are still searchable.
+  const detectedAllergens=detectUKAllergens(rawIngredients);
+  const detectedFamilies=detectFamilies(rawIngredients);
+
+  return [
+    x?.name||"",
+    ...(x?.ingredients||[]),
+    ...(x?.allergens||[]),
+    ...(x?.families||[]),
+    ...detectedAllergens,
+    ...detectedFamilies,
+    x?.notes||"",
+    ...(day?.exit?.symptoms||[])
+  ].join(" ").toLowerCase();
+}
+
 function renderMonthResults(){
-  const q=document.getElementById("monthFilter").value.trim().toLowerCase();
-  const now=new Date(), prefix=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+  const filter=document.getElementById("monthFilter");
+  const resultsBox=document.getElementById("monthResults");
+  if(!filter || !resultsBox) return;
+
+  const q=filter.value.trim().toLowerCase();
+  const aliases={
+    "dairy":["milk","milk dairy"],
+    "gluten":["cereals containing gluten","wheat"],
+    "nuts":["tree nuts","cashew","almond","hazelnut","walnut","pecan","pistachio","macadamia","brazil nut"],
+    "nut":["tree nuts","cashew","almond","hazelnut","walnut","pecan","pistachio","macadamia","brazil nut"],
+    "soy":["soya"]
+  };
+  const terms=[q,...(aliases[q]||[])].filter(Boolean);
+
+  const now=new Date();
+  const prefix=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
   const results=[];
-  Object.entries(state.days).filter(([k])=>k.startsWith(prefix)).forEach(([k,day])=>{
-    mealTypes.forEach(m=>(day.meals?.[m.key]||[]).forEach(x=>{
-      // Search everything Intolearn knows about the meal, including
-      // OCR ingredients and the structured allergen/tracking tags.
-      const hay=[
-        x.name,
-        ...(x.ingredients||[]),
-        ...(x.allergens||[]),
-        ...(x.families||[]),
-        x.notes||"",
-        ...(day.exit?.symptoms||[])
-      ].join(" ").toLowerCase();
 
-      // Helpful aliases for natural searches.
-      const aliases = {
-        "dairy":"milk",
-        "gluten":"cereals containing gluten",
-        "nuts":"tree nuts",
-        "nut":"tree nuts",
-        "soy":"soya"
-      };
-      const searchTerm = aliases[q] || q;
+  try{
+    Object.entries(state.days||{})
+      .filter(([k])=>k.startsWith(prefix))
+      .forEach(([k,day])=>{
+        mealTypes.forEach(m=>{
+          const entries=day?.meals?.[m.key]||[];
+          entries.forEach(x=>{
+            const hay=getMealSearchText(x,day);
+            const matches=!q || terms.some(term=>hay.includes(term));
+            if(matches) results.push({k,m,x});
+          });
+        });
+      });
 
-      if(!q || hay.includes(q) || hay.includes(searchTerm)) results.push({k,m,x});
-    }));
-  });
-  results.sort((a,b)=>b.k.localeCompare(a.k));
-  document.getElementById("monthResults").innerHTML=results.length?results.map(o=>`
-    <div class="timeline-item"><strong>${escapeHtml(o.x.name)}</strong><small>${new Date(o.k+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short"})} · ${mealTypes.find(m=>m.key===o.m).label}</small></div>
-  `).join(""):`<p class="muted">No matching entries.</p>`;
+    results.sort((a,b)=>b.k.localeCompare(a.k));
+
+    resultsBox.innerHTML=results.length
+      ? results.map(o=>`
+        <div class="timeline-item">
+          <strong>${escapeHtml(o.x?.name||"Untitled entry")}</strong>
+          <small>${new Date(o.k+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short"})} · ${mealTypes.find(m=>m.key===o.m)?.label||""}</small>
+        </div>`).join("")
+      : `<p class="muted">No matching entries.</p>`;
+  }catch(err){
+    console.error("Month search failed",err);
+    resultsBox.innerHTML=`<p class="muted">Month search could not be loaded.</p>`;
+  }
 }
 document.getElementById("monthFilter").addEventListener("input",renderMonthResults);
 
@@ -616,5 +657,11 @@ document.getElementById("clearDataBtn").onclick=()=>{
   }
 };
 
-function renderAll(){ renderMeals(); renderExit(); renderWeek(); renderMonth(); renderTrends(); }
+function renderAll(){
+  const jobs=[renderMeals,renderExit,renderWeek,renderMonth,renderTrends];
+  jobs.forEach(fn=>{
+    try{ fn(); }
+    catch(err){ console.error(fn.name+" failed",err); }
+  });
+}
 ensureDay(); renderAll();
