@@ -198,3 +198,44 @@ dialog input,dialog textarea{margin-bottom:14px}
 .checker-warning{margin-top:16px;padding:14px;border-radius:15px;background:#fff8df;border:1px solid #eadca9}.checker-warning strong{color:#6c5819}.checker-warning p{margin:5px 0 0;color:#756b4d;font-size:12px;line-height:1.45}
 .checker-extracted{margin-top:12px}.checker-text-toggle{border:0;background:transparent;color:var(--primary);font-weight:800;padding:6px 0}.checker-extracted-text{margin-top:8px;padding:12px;background:#f5f8f6;border-radius:13px;font-size:11px;line-height:1.45;white-space:pre-wrap;max-height:190px;overflow:auto}
 @media(max-width:520px){.checker-launch-card{grid-template-columns:auto 1fr}.checker-launch-btn{grid-column:1/-1;width:100%}.checker-trigger-grid{grid-template-columns:1fr 1fr}}
+
+/* v4.4 Barcode + Open Food Facts */
+.barcode-first-card{
+  display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;
+  margin:2px 0 18px;padding:15px;border:1px solid #cfe3d9;border-radius:18px;
+  background:linear-gradient(135deg,#edf7f1,#fff);
+}
+.barcode-first-icon{width:48px;height:48px;border-radius:14px;background:#dcefe6;display:grid;place-items:center;font-size:30px;color:var(--primary);font-weight:900}
+.barcode-first-copy strong{display:block;font-size:16px;color:var(--ink);margin:2px 0}
+.barcode-first-copy small{display:block;color:var(--muted);line-height:1.35}
+.barcode-scan-button{grid-column:1/-1;width:100%;margin:0}
+.barcode-source-note{margin:-6px 0 14px;padding:10px 12px;border-radius:12px;background:#e6f3ea;color:#2f6e53;font-size:12px;font-weight:800}
+#barcodeDialog{max-width:620px}
+.barcode-shell{padding:22px}
+.barcode-help{margin-top:-5px;line-height:1.45}
+.barcode-reader{width:100%;min-height:255px;background:#101513;border-radius:18px;overflow:hidden;margin:14px 0}
+.barcode-reader:empty{display:none}
+#barcodeReader video{border-radius:18px}
+.barcode-manual-row{display:grid;grid-template-columns:1fr auto;gap:9px;margin:12px 0}
+.barcode-manual-row input{margin:0}
+.barcode-product-card{
+  margin-top:15px;padding:16px;border:1px solid #d8e6df;border-radius:20px;background:#fff;
+  display:grid;grid-template-columns:94px 1fr;gap:14px;align-items:start
+}
+.barcode-product-image-wrap{width:94px;height:112px;border-radius:14px;background:#f2f6f4;overflow:hidden;display:grid;place-items:center}
+.barcode-product-image-wrap img{width:100%;height:100%;object-fit:contain}
+.barcode-product-image-placeholder{font-size:36px}
+.barcode-product-info h3{margin:3px 0 4px;font-size:19px}
+.barcode-product-info p{margin:3px 0}
+.barcode-product-card .wide{grid-column:1/-1}
+.barcode-completeness{font-size:11px;color:var(--muted);margin-top:9px!important}
+.barcode-not-found{margin-top:14px;padding:14px;border-radius:14px;background:#fff7e4;border:1px solid #eadba8}
+.barcode-not-found p{margin:5px 0 0;color:#756b4d;font-size:12px;line-height:1.4}
+.barcode-disclaimer{margin-top:15px;font-size:11px;line-height:1.4;color:var(--muted)}
+.checker-barcode-btn{margin:12px 0 4px}
+.checker-barcode-hint{font-size:11px;color:var(--muted);line-height:1.4;margin-bottom:10px}
+@media(max-width:420px){
+  .barcode-product-card{grid-template-columns:78px 1fr}
+  .barcode-product-image-wrap{width:78px;height:96px}
+  .barcode-manual-row{grid-template-columns:1fr}
+}

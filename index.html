@@ -233,6 +233,18 @@
         <button type="button" class="icon-button" id="closeMealDialog" aria-label="Close">✕</button>
       </div>
 
+      <section class="barcode-first-card">
+        <div class="barcode-first-icon">▥</div>
+        <div class="barcode-first-copy">
+          <div class="eyebrow">FASTEST OPTION</div>
+          <strong>Scan the product barcode</strong>
+          <small>Intolearn will look up the product, ingredients, allergens and image using Open Food Facts.</small>
+        </div>
+        <button type="button" class="primary barcode-scan-button" id="scanMealBarcodeBtn">Scan barcode</button>
+      </section>
+
+      <div id="mealBarcodeSource" class="barcode-source-note hidden"></div>
+
       <label>Food or product</label>
       <input id="foodName" placeholder="e.g. Cereal with milk" />
 
@@ -244,8 +256,8 @@
 
       <div class="scan-panel">
         <div>
-          <strong>📷 Scan ingredient label</strong>
-          <p>Take a clear photo of the ingredients panel. Intolearn will read the label, fill the ingredient list and flag useful ingredient families.</p>
+          <strong>📷 Ingredient photo fallback</strong>
+          <p>If the barcode is unavailable or the product cannot be found, photograph and crop the ingredient label instead.</p>
         </div>
         <div class="photo-choice-row">
           <label class="secondary file-label photo-choice">📷 Take photo
@@ -284,6 +296,51 @@
 
 
 
+
+  <dialog id="barcodeDialog">
+    <div class="barcode-shell">
+      <div class="dialog-head">
+        <div>
+          <div class="eyebrow">BARCODE LOOKUP</div>
+          <h2>Scan product barcode</h2>
+        </div>
+        <button type="button" class="icon-button" id="closeBarcodeBtn" aria-label="Close">✕</button>
+      </div>
+
+      <p class="muted barcode-help">Point the camera at the barcode. Intolearn will search Open Food Facts and show the product before anything is added.</p>
+
+      <div id="barcodeReader" class="barcode-reader"></div>
+
+      <div class="barcode-manual-row">
+        <input id="manualBarcode" inputmode="numeric" autocomplete="off" placeholder="Or enter barcode number" />
+        <button type="button" class="secondary" id="lookupBarcodeBtn">Look up</button>
+      </div>
+
+      <div id="barcodeStatus" class="scan-status hidden"></div>
+
+      <div id="barcodeProductCard" class="barcode-product-card hidden">
+        <div id="barcodeProductImageWrap" class="barcode-product-image-wrap"></div>
+        <div class="barcode-product-info">
+          <div class="eyebrow">OPEN FOOD FACTS</div>
+          <h3 id="barcodeProductName">Product</h3>
+          <p id="barcodeProductBrand" class="muted"></p>
+          <div id="barcodeAllergenTags" class="family-tags allergen-tags"></div>
+          <p id="barcodeProductCompleteness" class="barcode-completeness"></p>
+        </div>
+        <button type="button" class="primary wide" id="useBarcodeProductBtn">Use this product</button>
+      </div>
+
+      <div id="barcodeNotFound" class="barcode-not-found hidden">
+        <strong>Product not found or incomplete</strong>
+        <p>Close this window and use the ingredient-photo fallback, or enter the product manually.</p>
+      </div>
+
+      <div class="barcode-disclaimer">
+        Open Food Facts is community-maintained. For allergies, always verify the original packaging and allergen statement.
+      </div>
+    </div>
+  </dialog>
+
   <dialog id="checkerDialog">
     <div class="checker-shell">
       <div class="dialog-head">
@@ -320,6 +377,9 @@
         <button type="button" data-trigger="Legumes / pulses">🫘 Pulses</button>
         <button type="button" data-trigger="Sweeteners">🍬 Polyol sweeteners</button>
       </div>
+
+      <button type="button" class="primary wide checker-barcode-btn" id="scanCheckerBarcodeBtn">▥ Scan barcode first</button>
+      <div class="checker-barcode-hint">Uses structured product/allergen data when available. Ingredient-photo OCR remains the fallback.</div>
 
       <div class="checker-photo-actions">
         <label class="secondary file-label photo-choice">📷 Take photo
@@ -392,8 +452,9 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
-  <script src="app.js?v=43"></script>
+  <script src="app.js?v=44"></script>
 </body>
 </html>

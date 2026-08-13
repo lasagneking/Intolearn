@@ -1,6 +1,7 @@
 
 const STORAGE_KEY = "intolearn_personal_v1";
-const APP_VERSION = "4.3";
+const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
+const APP_VERSION = "4.4";
 const mealTypes = [
   {key:"breakfast", label:"Breakfast", icon:"☀️"},
   {key:"lunch", label:"Lunch", icon:"🌤️"},
@@ -137,6 +138,270 @@ async function scanCheckerImage(file){
   }
 }
 
+
+const offAllergenMap = {
+  "en:gluten":"Cereals containing gluten",
+  "en:milk":"Milk",
+  "en:eggs":"Egg",
+  "en:egg":"Egg",
+  "en:soybeans":"Soya",
+  "en:soya":"Soya",
+  "en:peanuts":"Peanuts",
+  "en:nuts":"Tree nuts",
+  "en:tree-nuts":"Tree nuts",
+  "en:celery":"Celery",
+  "en:mustard":"Mustard",
+  "en:sesame-seeds":"Sesame",
+  "en:sesame":"Sesame",
+  "en:crustaceans":"Crustaceans",
+  "en:fish":"Fish",
+  "en:lupin":"Lupin",
+  "en:molluscs":"Molluscs",
+  "en:sulphur-dioxide-and-sulphites":"Sulphites"
+};
+const offSpecificNutTags = new Set([
+  "en:almonds","en:hazelnuts","en:walnuts","en:cashew-nuts","en:cashews",
+  "en:pecan-nuts","en:pistachio-nuts","en:macadamia-nuts","en:brazil-nuts"
+]);
+
+function loadProductCache(){
+  try{return JSON.parse(localStorage.getItem(PRODUCT_CACHE_KEY)||"{}")||{};}
+  catch(e){return {};}
+}
+function saveProductCache(cache){
+  try{localStorage.setItem(PRODUCT_CACHE_KEY,JSON.stringify(cache));}
+  catch(e){console.warn("Product cache save failed",e);}
+}
+function normaliseOFFAllergens(tags=[]){
+  const out=[];
+  (tags||[]).forEach(raw=>{
+    const tag=String(raw).toLowerCase();
+    let name=offAllergenMap[tag];
+    if(!name && offSpecificNutTags.has(tag)) name="Tree nuts";
+    if(name && !out.includes(name)) out.push(name);
+  });
+  return out;
+}
+function offImageUrl(product){
+  return product?.image_front_url || product?.image_front_small_url || "";
+}
+function compactOFFProduct(barcode, product){
+  return {
+    barcode:String(barcode),
+    name:product.product_name || product.product_name_en || "Unknown product",
+    brand:product.brands || "",
+    ingredientsText:product.ingredients_text || product.ingredients_text_en || "",
+    allergens:normaliseOFFAllergens(product.allergens_tags || []),
+    traces:(product.traces_tags||[]).map(x=>String(x).replace(/^en:/,"").replaceAll("-"," ")),
+    labels:product.labels_tags || [],
+    image:offImageUrl(product),
+    fetchedAt:new Date().toISOString(),
+    source:"Open Food Facts"
+  };
+}
+async function fetchOFFProduct(barcode){
+  const code=String(barcode||"").replace(/\D/g,"");
+  if(!code) throw new Error("Enter or scan a barcode.");
+
+  const cache=loadProductCache();
+  if(cache[code]){
+    return {...cache[code], fromCache:true};
+  }
+
+  const fields=[
+    "code","product_name","product_name_en","brands",
+    "ingredients_text","ingredients_text_en","allergens_tags","traces_tags",
+    "labels_tags","image_front_url","image_front_small_url"
+  ].join(",");
+  const url=`https://world.openfoodfacts.org/api/v3.6/product/${encodeURIComponent(code)}.json?fields=${encodeURIComponent(fields)}`;
+  const response=await fetch(url,{headers:{"Accept":"application/json"}});
+  if(!response.ok) throw new Error(`Open Food Facts returned ${response.status}.`);
+  const data=await response.json();
+
+  const p=data?.product;
+  if(!p || data?.status===0) return null;
+
+  const compact=compactOFFProduct(code,p);
+  cache[code]=compact;
+  saveProductCache(cache);
+  return compact;
+}
+function renderBarcodeProduct(product){
+  barcodeProduct=product;
+  const card=document.getElementById("barcodeProductCard");
+  const imgWrap=document.getElementById("barcodeProductImageWrap");
+  const tags=document.getElementById("barcodeAllergenTags");
+  document.getElementById("barcodeProductName").textContent=product.name||"Unknown product";
+  document.getElementById("barcodeProductBrand").textContent=product.brand || `Barcode ${product.barcode}`;
+  imgWrap.innerHTML=product.image
+    ? `<img src="${escapeHtml(product.image)}" alt="${escapeHtml(product.name||"Product")}">`
+    : `<div class="barcode-product-image-placeholder">▥</div>`;
+  tags.innerHTML=product.allergens.length
+    ? product.allergens.map(x=>`<span class="allergen-tag">${escapeHtml(x)}</span>`).join("")
+    : `<span class="muted">No structured allergens listed</span>`;
+  const pieces=[];
+  pieces.push(product.fromCache ? "Loaded from your local Intolearn product cache." : "Loaded from Open Food Facts.");
+  if(!product.ingredientsText) pieces.push("Ingredient text is missing.");
+  document.getElementById("barcodeProductCompleteness").textContent=pieces.join(" ");
+  card.classList.remove("hidden");
+  document.getElementById("barcodeNotFound").classList.add("hidden");
+}
+async function lookupBarcode(barcode){
+  const status=document.getElementById("barcodeStatus");
+  document.getElementById("barcodeProductCard").classList.add("hidden");
+  document.getElementById("barcodeNotFound").classList.add("hidden");
+  status.textContent="Looking up product…";
+  status.className="scan-status working";
+  try{
+    const product=await fetchOFFProduct(barcode);
+    if(!product){
+      status.textContent="Barcode scanned, but this product is not currently in Open Food Facts.";
+      status.className="scan-status error";
+      document.getElementById("barcodeNotFound").classList.remove("hidden");
+      return;
+    }
+    renderBarcodeProduct(product);
+    status.textContent=product.fromCache ? "Product found instantly in your Intolearn cache." : "Product found.";
+    status.className="scan-status success";
+  }catch(err){
+    console.error(err);
+    status.textContent=`Could not look up product. ${err.message||""}`;
+    status.className="scan-status error";
+  }
+}
+async function stopBarcodeScanner(){
+  if(barcodeScanner){
+    try{
+      if(barcodeScanner.getState && barcodeScanner.getState()===2) await barcodeScanner.stop();
+      else if(barcodeScanner.stop) await barcodeScanner.stop();
+    }catch(e){}
+    try{barcodeScanner.clear();}catch(e){}
+    barcodeScanner=null;
+  }
+  const reader=document.getElementById("barcodeReader");
+  if(reader) reader.innerHTML="";
+}
+async function startBarcodeScanner(){
+  const status=document.getElementById("barcodeStatus");
+  if(!window.Html5Qrcode){
+    status.textContent="Camera barcode reader could not load. You can still enter the barcode number manually.";
+    status.className="scan-status error";
+    return;
+  }
+  await stopBarcodeScanner();
+  document.getElementById("barcodeReader").innerHTML="";
+  barcodeScanner=new Html5Qrcode("barcodeReader",{
+    formatsToSupport:[
+      Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E,
+      Html5QrcodeSupportedFormats.CODE_128
+    ],
+    verbose:false
+  });
+  try{
+    await barcodeScanner.start(
+      {facingMode:"environment"},
+      {fps:10,qrbox:{width:280,height:130},aspectRatio:1.5},
+      async decodedText=>{
+        document.getElementById("manualBarcode").value=decodedText;
+        await stopBarcodeScanner();
+        await lookupBarcode(decodedText);
+      },
+      ()=>{}
+    );
+    status.textContent="Camera ready — place the barcode inside the frame.";
+    status.className="scan-status working";
+  }catch(err){
+    console.warn(err);
+    status.textContent="Camera could not start. Enter the barcode number manually below.";
+    status.className="scan-status error";
+  }
+}
+function resetBarcodeDialog(){
+  barcodeProduct=null;
+  document.getElementById("manualBarcode").value="";
+  document.getElementById("barcodeProductCard").classList.add("hidden");
+  document.getElementById("barcodeNotFound").classList.add("hidden");
+  const status=document.getElementById("barcodeStatus");
+  status.textContent="";
+  status.className="scan-status hidden";
+}
+async function openBarcodeDialog(destination){
+  barcodeDestination=destination;
+  if(destination==="checker" && !getSelectedCheckerTriggers().length){
+    const s=document.getElementById("checkerStatus");
+    s.textContent="Select at least one ingredient to check first.";
+    s.className="scan-status error";
+    return;
+  }
+  resetBarcodeDialog();
+  const d=document.getElementById("barcodeDialog");
+  d.showModal();
+  setTimeout(startBarcodeScanner,120);
+}
+async function closeBarcodeDialog(){
+  await stopBarcodeScanner();
+  const d=document.getElementById("barcodeDialog");
+  try{if(d.open)d.close();}catch(e){}
+  if(d.hasAttribute("open")) d.removeAttribute("open");
+}
+function applyBarcodeProductToMeal(product){
+  mealBarcodeData=product;
+  document.getElementById("foodName").value=product.name||"";
+  document.getElementById("ingredients").value=product.ingredientsText||"";
+  photoData=product.image||"";
+  document.getElementById("photoPreview").innerHTML=photoData
+    ? `<img src="${escapeHtml(photoData)}" alt="${escapeHtml(product.name||"Product")}">`
+    : "";
+  const note=document.getElementById("mealBarcodeSource");
+  note.textContent=`▥ Barcode ${product.barcode} · ${product.fromCache?"Intolearn cache":"Open Food Facts"} · ${product.allergens.length?product.allergens.join(", "):"no structured allergens listed"}`;
+  note.classList.remove("hidden");
+  renderFamilies(product.ingredientsText||"");
+}
+function checkerMatchesFromBarcodeProduct(product){
+  const selected=getSelectedCheckerTriggers();
+  const structured=new Set(product.allergens||[]);
+  const text=normaliseScanText(product.ingredientsText||"");
+  const mapping={
+    "Cereals containing gluten":"Cereals containing gluten",
+    "Milk / dairy":"Milk","Egg":"Egg","Soya":"Soya","Peanuts":"Peanuts",
+    "Tree nuts":"Tree nuts","Sesame":"Sesame","Fish":"Fish","Crustaceans":"Crustaceans",
+    "Molluscs":"Molluscs","Celery":"Celery","Mustard":"Mustard","Sulphites":"Sulphites","Lupin":"Lupin"
+  };
+  return selected.filter(trigger=>{
+    if(mapping[trigger]) return structured.has(mapping[trigger]);
+    return (checkerTriggerTerms[trigger]||[]).some(term=>termPresent(text,term));
+  });
+}
+function applyBarcodeProductToChecker(product){
+  const matches=checkerMatchesFromBarcodeProduct(product);
+  const resultBox=document.getElementById("checkerResult");
+  const icon=document.getElementById("checkerResultIcon");
+  const title=document.getElementById("checkerResultTitle");
+  const text=document.getElementById("checkerResultText");
+  const tags=document.getElementById("checkerMatches");
+  document.getElementById("checkerPreview").innerHTML=product.image
+    ? `<img src="${escapeHtml(product.image)}" alt="${escapeHtml(product.name||"Product")}">` : "";
+  if(matches.length){
+    resultBox.className="checker-result match";
+    icon.textContent="!";
+    title.textContent="Selected trigger detected";
+    text.textContent="Open Food Facts lists one or more of your selected triggers for this product.";
+    tags.innerHTML=matches.map(x=>`<span class="checker-match-tag">${escapeHtml(x)}</span>`).join("");
+  }else{
+    resultBox.className="checker-result clear";
+    icon.textContent="✓";
+    title.textContent="No selected trigger listed";
+    text.textContent="No selected trigger was found in the structured allergen data/available ingredient data. Always verify the original packaging.";
+    tags.innerHTML="";
+  }
+  document.getElementById("checkerExtracted").textContent=product.ingredientsText||"No ingredient text supplied by Open Food Facts.";
+  document.getElementById("checkerExtractedWrap").classList.remove("hidden");
+  const status=document.getElementById("checkerStatus");
+  status.textContent=`Barcode checked: ${product.name}.`;
+  status.className="scan-status success";
+}
+
 function normaliseScanText(text){
   return (" " + String(text).toLowerCase() + " ")
     .replace(/[()[\]{}:;,./\\\-_%]+/g," ")
@@ -152,7 +417,18 @@ function termPresent(hay, term){
 function detectUKAllergens(text){
   const hay=normaliseScanText(text);
   return ukAllergens
-    .filter(a=>a.terms.some(term=>termPresent(hay,term)))
+    .filter(a=>{
+      if(a.name==="Cereals containing gluten"){
+        // Avoid the false positive that triggered this v4.4 change:
+        // "gluten free oats" must not be treated as "cereals containing gluten".
+        const contextSafe=hay
+          .replace(/gluten free oats?/g," ")
+          .replace(/gluten free/g," ")
+          .replace(/certified gluten free oats?/g," ");
+        return a.terms.some(term=>termPresent(contextSafe,term));
+      }
+      return a.terms.some(term=>termPresent(hay,term));
+    })
     .map(a=>a.name);
 }
 
@@ -233,6 +509,10 @@ let activeMeal = "breakfast";
 let editingIndex = null;
 let editingDateKey = null;
 let photoData = "";
+let barcodeDestination = "meal";
+let barcodeScanner = null;
+let barcodeProduct = null;
+let mealBarcodeData = null;
 let toastTimer = null;
 let cropper = null;
 let pendingPhotoFile = null;
@@ -326,6 +606,9 @@ function resetMealForm(){
   document.getElementById("allergenSection").classList.add("hidden");
   document.getElementById("otherTrackingSection").classList.add("hidden");
   photoData="";
+  mealBarcodeData=null;
+  const barcodeNote=document.getElementById("mealBarcodeSource");
+  if(barcodeNote){ barcodeNote.textContent=""; barcodeNote.classList.add("hidden"); }
 }
 
 function openMeal(meal, index=null, entryDateKey=null){
@@ -349,6 +632,21 @@ function openMeal(meal, index=null, entryDateKey=null){
     document.getElementById("foodNotes").value=item.notes||"";
     photoData=item.photo||"";
     if(photoData) document.getElementById("photoPreview").innerHTML=`<img src="${photoData}" alt="Ingredient photo preview">`;
+    if(item.barcode){
+      mealBarcodeData={
+        barcode:item.barcode,
+        name:item.name||"",
+        brand:item.brand||"",
+        ingredientsText:(item.ingredients||[]).join(", "),
+        allergens:item.allergens||[],
+        image:item.photo||"",
+        source:item.source||"Open Food Facts",
+        fromCache:true
+      };
+      const bn=document.getElementById("mealBarcodeSource");
+      bn.textContent=`▥ Barcode ${item.barcode} · ${item.source||"Open Food Facts"}`;
+      bn.classList.remove("hidden");
+    }
     renderFamilies((item.ingredients||[]).join(" "));
   }
   document.getElementById("mealDialog").showModal();
@@ -391,9 +689,12 @@ function saveMeal(){
     time:document.getElementById("foodTime").value,
     ingredients:parseIngredients(document.getElementById("ingredients").value),
     families:detectFamilies(document.getElementById("ingredients").value),
-    allergens:detectUKAllergens(document.getElementById("ingredients").value),
+    allergens:mealBarcodeData ? (mealBarcodeData.allergens||[]) : detectUKAllergens(document.getElementById("ingredients").value),
     notes:document.getElementById("foodNotes").value.trim(),
     photo:photoData,
+    barcode:mealBarcodeData?.barcode||"",
+    brand:mealBarcodeData?.brand||"",
+    source:mealBarcodeData ? "Open Food Facts" : "Manual/OCR",
     createdAt: editingIndex===null ? new Date().toISOString() : (getDay(editingDateKey).meals[activeMeal][editingIndex]?.createdAt || new Date().toISOString()),
     updatedAt:new Date().toISOString()
   };
@@ -546,6 +847,26 @@ document.getElementById("cancelCropBtn").addEventListener("click",()=>{
 document.getElementById("cropDialog").addEventListener("cancel",e=>{
   e.preventDefault();
   closeCropDialog();
+});
+
+
+document.getElementById("scanMealBarcodeBtn").addEventListener("click",()=>openBarcodeDialog("meal"));
+document.getElementById("scanCheckerBarcodeBtn").addEventListener("click",()=>openBarcodeDialog("checker"));
+document.getElementById("closeBarcodeBtn").addEventListener("click",closeBarcodeDialog);
+document.getElementById("barcodeDialog").addEventListener("cancel",e=>{e.preventDefault();closeBarcodeDialog();});
+document.getElementById("lookupBarcodeBtn").addEventListener("click",()=>{
+  const code=document.getElementById("manualBarcode").value.trim();
+  if(code) lookupBarcode(code);
+});
+document.getElementById("manualBarcode").addEventListener("keydown",e=>{
+  if(e.key==="Enter"){e.preventDefault();document.getElementById("lookupBarcodeBtn").click();}
+});
+document.getElementById("useBarcodeProductBtn").addEventListener("click",async()=>{
+  if(!barcodeProduct) return;
+  const product=barcodeProduct;
+  await closeBarcodeDialog();
+  if(barcodeDestination==="checker") applyBarcodeProductToChecker(product);
+  else applyBarcodeProductToMeal(product);
 });
 
 document.getElementById("ingredientCamera").addEventListener("change",e=>{
