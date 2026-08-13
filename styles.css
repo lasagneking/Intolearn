@@ -275,3 +275,72 @@ dialog input,dialog textarea{margin-bottom:14px}
   width:100%;
   justify-content:center;
 }
+
+/* v4.6 polished barcode diary cards */
+.barcode-diary-entry{
+  width:100%;
+  display:grid;
+  grid-template-columns:92px 1fr auto;
+  gap:14px;
+  align-items:center;
+  border:1px solid #e1ebe6;
+  background:linear-gradient(135deg,#ffffff,#f6faf8);
+  border-radius:19px;
+  padding:12px;
+  margin-top:12px;
+  text-align:left;
+  color:var(--ink);
+  box-shadow:0 7px 20px rgba(33,69,55,.045);
+  appearance:none;
+  -webkit-appearance:none;
+}
+.barcode-diary-entry:active{
+  transform:scale(.992);
+  background:#f1f7f4;
+}
+.barcode-diary-image{
+  width:92px;
+  height:92px;
+  border-radius:15px;
+  background:#fff;
+  border:1px solid #e7eeea;
+  overflow:hidden;
+  display:grid;
+  place-items:center;
+}
+.barcode-diary-image img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+.barcode-diary-placeholder{
+  font-size:34px;
+  color:#88a095;
+}
+.barcode-diary-copy{
+  min-width:0;
+}
+.barcode-diary-copy strong{
+  display:block;
+  font-size:18px;
+  line-height:1.25;
+  color:var(--ink);
+}
+.barcode-diary-copy small{
+  display:block;
+  margin-top:6px;
+  color:var(--muted);
+  font-size:13px;
+}
+.barcode-diary-chevron{
+  font-size:34px;
+  line-height:1;
+  font-weight:300;
+  color:#71877c;
+  padding-right:4px;
+}
+@media(max-width:390px){
+  .barcode-diary-entry{grid-template-columns:78px 1fr auto}
+  .barcode-diary-image{width:78px;height:78px}
+  .barcode-diary-copy strong{font-size:16px}
+}

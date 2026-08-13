@@ -1,7 +1,7 @@
 
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
-const APP_VERSION = "4.5";
+const APP_VERSION = "4.6";
 const mealTypes = [
   {key:"breakfast", label:"Breakfast", icon:"☀️"},
   {key:"lunch", label:"Lunch", icon:"🌤️"},
@@ -673,18 +673,35 @@ function renderMeals(){
         <button class="add-btn" data-meal="${m.key}" type="button">+ Add</button>
       </div>
       <div class="entry-list">
-        ${items.map((it,i)=>`
-          <div class="food-entry">
-            <div class="food-entry-main">
-              <strong>${escapeHtml(it.name)}</strong>
-              <small>${it.time || ""}${it.notes ? " · "+escapeHtml(it.notes):""}</small>
-              <div class="ingredient-tags">${(it.ingredients||[]).slice(0,8).map(x=>`<span class="ingredient-tag">${escapeHtml(x)}</span>`).join("")}</div>
-            </div>
-            <div class="entry-actions">
-              <button class="entry-action view-entry" type="button" data-meal="${m.key}" data-index="${i}">View / Edit</button>
-              <button class="entry-action delete delete-entry" type="button" data-meal="${m.key}" data-index="${i}">Delete</button>
-            </div>
-          </div>`).join("")}
+        ${items.map((it,i)=>{
+          if(it.barcode){
+            return `
+              <button class="barcode-diary-entry view-entry" type="button" data-meal="${m.key}" data-index="${i}" aria-label="Open ${escapeHtml(it.name)}">
+                <div class="barcode-diary-image">
+                  ${it.photo
+                    ? `<img src="${escapeHtml(it.photo)}" alt="${escapeHtml(it.name)}">`
+                    : `<div class="barcode-diary-placeholder">▥</div>`}
+                </div>
+                <div class="barcode-diary-copy">
+                  <strong>${escapeHtml(it.name)}</strong>
+                  <small>${it.time || ""}</small>
+                </div>
+                <span class="barcode-diary-chevron">›</span>
+              </button>`;
+          }
+          return `
+            <div class="food-entry">
+              <div class="food-entry-main">
+                <strong>${escapeHtml(it.name)}</strong>
+                <small>${it.time || ""}${it.notes ? " · "+escapeHtml(it.notes):""}</small>
+                <div class="ingredient-tags">${(it.ingredients||[]).slice(0,8).map(x=>`<span class="ingredient-tag">${escapeHtml(x)}</span>`).join("")}</div>
+              </div>
+              <div class="entry-actions">
+                <button class="entry-action view-entry" type="button" data-meal="${m.key}" data-index="${i}">View / Edit</button>
+                <button class="entry-action delete delete-entry" type="button" data-meal="${m.key}" data-index="${i}">Delete</button>
+              </div>
+            </div>`;
+        }).join("")}
       </div>`;
     wrap.appendChild(card);
   });
@@ -727,7 +744,7 @@ function openMeal(meal, index=null, entryDateKey=null){
   resetMealForm();
 
   document.getElementById("mealDialogTitle").textContent=meta.label;
-  document.getElementById("mealDialogEyebrow").textContent=index===null ? "ADD ENTRY" : "VIEW / EDIT ENTRY";
+  document.getElementById("mealDialogEyebrow").textContent=index===null ? "ADD ENTRY" : "PRODUCT DETAILS";
   document.getElementById("saveMealBtn").textContent=index===null ? "Save entry" : "Save changes";
   document.getElementById("deleteMealBtn").classList.toggle("hidden", index===null);
 
@@ -739,7 +756,7 @@ function openMeal(meal, index=null, entryDateKey=null){
     document.getElementById("ingredients").value=(item.ingredients||[]).join("\n");
     document.getElementById("foodNotes").value=item.notes||"";
     photoData=item.photo||"";
-    if(photoData) document.getElementById("photoPreview").innerHTML=`<img src="${photoData}" alt="Ingredient photo preview">`;
+    if(photoData) document.getElementById("photoPreview").innerHTML=`<img src="${photoData}" alt="${escapeHtml(item.name||"Product")}">`;
     if(item.barcode){
       mealBarcodeData={
         barcode:item.barcode,
