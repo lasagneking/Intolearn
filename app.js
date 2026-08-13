@@ -1,7 +1,7 @@
 
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
-const APP_VERSION = "4.4";
+const APP_VERSION = "4.5";
 const mealTypes = [
   {key:"breakfast", label:"Breakfast", icon:"☀️"},
   {key:"lunch", label:"Lunch", icon:"🌤️"},
@@ -270,56 +270,164 @@ async function lookupBarcode(barcode){
   }
 }
 async function stopBarcodeScanner(){
-  if(barcodeScanner){
-    try{
-      if(barcodeScanner.getState && barcodeScanner.getState()===2) await barcodeScanner.stop();
-      else if(barcodeScanner.stop) await barcodeScanner.stop();
-    }catch(e){}
-    try{barcodeScanner.clear();}catch(e){}
-    barcodeScanner=null;
+  if(window.Quagga && barcodeScannerRunning){
+    try{ Quagga.stop(); }catch(e){}
   }
+  barcodeScannerRunning=false;
   const reader=document.getElementById("barcodeReader");
   if(reader) reader.innerHTML="";
 }
+
 async function startBarcodeScanner(){
   const status=document.getElementById("barcodeStatus");
-  if(!window.Html5Qrcode){
-    status.textContent="Camera barcode reader could not load. You can still enter the barcode number manually.";
+  const reader=document.getElementById("barcodeReader");
+
+  if(!window.Quagga){
+    status.textContent="Live barcode reader could not load. Use Take barcode photo or enter the number manually.";
     status.className="scan-status error";
     return;
   }
+
   await stopBarcodeScanner();
-  document.getElementById("barcodeReader").innerHTML="";
-  barcodeScanner=new Html5Qrcode("barcodeReader",{
-    formatsToSupport:[
-      Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,
-      Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E,
-      Html5QrcodeSupportedFormats.CODE_128
-    ],
-    verbose:false
-  });
-  try{
-    await barcodeScanner.start(
-      {facingMode:"environment"},
-      {fps:10,qrbox:{width:280,height:130},aspectRatio:1.5},
-      async decodedText=>{
-        document.getElementById("manualBarcode").value=decodedText;
-        await stopBarcodeScanner();
-        await lookupBarcode(decodedText);
+  reader.innerHTML="";
+
+  const config={
+    inputStream:{
+      name:"Live",
+      type:"LiveStream",
+      target:reader,
+      constraints:{
+        facingMode:"environment",
+        width:{ideal:1280},
+        height:{ideal:720},
+        aspectRatio:{ideal:1.7777778}
       },
-      ()=>{}
-    );
-    status.textContent="Camera ready — place the barcode inside the frame.";
+      area:{
+        top:"20%",
+        right:"5%",
+        left:"5%",
+        bottom:"20%"
+      }
+    },
+    locator:{
+      patchSize:"medium",
+      halfSample:true
+    },
+    numOfWorkers:navigator.hardwareConcurrency ? Math.min(4,navigator.hardwareConcurrency) : 2,
+    frequency:10,
+    decoder:{
+      readers:[
+        "ean_reader",
+        "ean_8_reader",
+        "upc_reader",
+        "upc_e_reader",
+        "code_128_reader"
+      ]
+    },
+    locate:true
+  };
+
+  try{
+    await new Promise((resolve,reject)=>{
+      Quagga.init(config,err=>{
+        if(err){ reject(err); return; }
+        resolve();
+      });
+    });
+
+    let handled=false;
+
+    Quagga.offDetected();
+    Quagga.onDetected(async result=>{
+      const code=result?.codeResult?.code;
+      if(!code || handled) return;
+
+      // Retail EAN/UPC barcodes should be numeric. Ignore obvious false positives.
+      if(!/^\d{8,14}$/.test(code)) return;
+
+      handled=true;
+      document.getElementById("manualBarcode").value=code;
+      status.textContent="Barcode found — looking up product…";
+      status.className="scan-status working";
+      await stopBarcodeScanner();
+      await lookupBarcode(code);
+    });
+
+    Quagga.start();
+    barcodeScannerRunning=true;
+    status.textContent="Camera ready — hold the barcode steady inside the frame.";
     status.className="scan-status working";
   }catch(err){
-    console.warn(err);
-    status.textContent="Camera could not start. Enter the barcode number manually below.";
+    console.warn("Quagga live scanner failed",err);
+    barcodeScannerRunning=false;
+    status.textContent="Live camera scanning is unavailable here. Use Take barcode photo below.";
     status.className="scan-status error";
   }
 }
+
+async function decodeBarcodePhoto(file){
+  const status=document.getElementById("barcodeStatus");
+  if(!file) return;
+
+  if(!window.Quagga){
+    status.textContent="Barcode reader could not load. Enter the barcode number manually.";
+    status.className="scan-status error";
+    return;
+  }
+
+  await stopBarcodeScanner();
+  status.textContent="Reading barcode photo…";
+  status.className="scan-status working";
+
+  const objectUrl=URL.createObjectURL(file);
+
+  try{
+    const result=await new Promise((resolve,reject)=>{
+      Quagga.decodeSingle({
+        src:objectUrl,
+        numOfWorkers:0,
+        locate:true,
+        locator:{
+          patchSize:"medium",
+          halfSample:false
+        },
+        decoder:{
+          readers:[
+            "ean_reader",
+            "ean_8_reader",
+            "upc_reader",
+            "upc_e_reader",
+            "code_128_reader"
+          ]
+        }
+      },res=>resolve(res));
+    });
+
+    const code=result?.codeResult?.code;
+    if(!code || !/^\d{8,14}$/.test(code)){
+      status.textContent="I couldn't read that barcode. Try again closer, with the full barcode in view.";
+      status.className="scan-status error";
+      return;
+    }
+
+    document.getElementById("manualBarcode").value=code;
+    status.textContent="Barcode found — looking up product…";
+    status.className="scan-status working";
+    await lookupBarcode(code);
+  }catch(err){
+    console.error(err);
+    status.textContent="I couldn't read that barcode photo. Try again or enter the number manually.";
+    status.className="scan-status error";
+  }finally{
+    URL.revokeObjectURL(objectUrl);
+    document.getElementById("barcodePhoto").value="";
+  }
+}
+
 function resetBarcodeDialog(){
   barcodeProduct=null;
   document.getElementById("manualBarcode").value="";
+  document.getElementById("barcodePhoto").value="";
   document.getElementById("barcodeProductCard").classList.add("hidden");
   document.getElementById("barcodeNotFound").classList.add("hidden");
   const status=document.getElementById("barcodeStatus");
@@ -510,7 +618,7 @@ let editingIndex = null;
 let editingDateKey = null;
 let photoData = "";
 let barcodeDestination = "meal";
-let barcodeScanner = null;
+let barcodeScannerRunning = false;
 let barcodeProduct = null;
 let mealBarcodeData = null;
 let toastTimer = null;
@@ -854,6 +962,9 @@ document.getElementById("scanMealBarcodeBtn").addEventListener("click",()=>openB
 document.getElementById("scanCheckerBarcodeBtn").addEventListener("click",()=>openBarcodeDialog("checker"));
 document.getElementById("closeBarcodeBtn").addEventListener("click",closeBarcodeDialog);
 document.getElementById("barcodeDialog").addEventListener("cancel",e=>{e.preventDefault();closeBarcodeDialog();});
+document.getElementById("barcodePhoto").addEventListener("change",e=>{
+  decodeBarcodePhoto(e.target.files?.[0]);
+});
 document.getElementById("lookupBarcodeBtn").addEventListener("click",()=>{
   const code=document.getElementById("manualBarcode").value.trim();
   if(code) lookupBarcode(code);

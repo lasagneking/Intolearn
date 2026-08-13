@@ -239,3 +239,39 @@ dialog input,dialog textarea{margin-bottom:14px}
   .barcode-product-image-wrap{width:78px;height:96px}
   .barcode-manual-row{grid-template-columns:1fr}
 }
+
+/* v4.5 Quagga2 live barcode scanner + still-photo fallback */
+.barcode-reader{
+  position:relative;
+  min-height:280px;
+  background:#101513;
+  overflow:hidden;
+}
+.barcode-reader video,
+.barcode-reader canvas{
+  width:100%!important;
+  height:100%!important;
+  min-height:280px;
+  object-fit:cover;
+}
+.barcode-reader canvas.drawingBuffer{
+  position:absolute;
+  inset:0;
+}
+.barcode-photo-fallback{
+  margin:12px 0;
+  padding:12px;
+  border:1px dashed #c9ded4;
+  border-radius:14px;
+  background:#f7faf8;
+}
+.barcode-photo-fallback small{
+  display:block;
+  margin-top:7px;
+  color:var(--muted);
+  line-height:1.35;
+}
+.barcode-photo-label{
+  width:100%;
+  justify-content:center;
+}

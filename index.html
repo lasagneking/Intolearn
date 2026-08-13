@@ -311,6 +311,13 @@
 
       <div id="barcodeReader" class="barcode-reader"></div>
 
+      <div class="barcode-photo-fallback">
+        <label class="secondary file-label photo-choice barcode-photo-label">📷 Take barcode photo
+          <input id="barcodePhoto" type="file" accept="image/*" capture="environment" />
+        </label>
+        <small>If live scanning struggles, photograph the barcode. No crop or ingredient OCR is needed.</small>
+      </div>
+
       <div class="barcode-manual-row">
         <input id="manualBarcode" inputmode="numeric" autocomplete="off" placeholder="Or enter barcode number" />
         <button type="button" class="secondary" id="lookupBarcodeBtn">Look up</button>
@@ -451,10 +458,9 @@
   </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-
-  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
-  <script src="app.js?v=44"></script>
+  <script src="app.js?v=45"></script>
 </body>
 </html>
