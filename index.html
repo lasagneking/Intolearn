@@ -245,8 +245,14 @@
 
       <div id="mealBarcodeSource" class="barcode-source-note hidden"></div>
 
+      <div id="quickAddWrap" class="quick-add-wrap hidden">
+        <div class="quick-add-label">Quick add — from your history</div>
+        <div id="quickAddChips" class="quick-add-chips"></div>
+      </div>
+
       <label>Food or product</label>
-      <input id="foodName" placeholder="e.g. Cereal with milk" />
+      <input id="foodName" placeholder="e.g. Cereal with milk" list="foodNameList" autocomplete="off" />
+      <datalist id="foodNameList"></datalist>
 
       <label>Time</label>
       <input id="foodTime" type="time" />
@@ -461,7 +467,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
-  <script src="app.js?v=48"></script>
+  <script src="app.js?v=49"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {

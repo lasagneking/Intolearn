@@ -49,6 +49,14 @@ h3{margin:0}
 .emoji-row button{min-width:82px;display:flex;flex-direction:column;gap:4px;align-items:center;font-size:22px}
 .emoji-row button span{font-size:10px}
 .chip-wrap{display:flex;flex-wrap:wrap;gap:8px}
+
+.quick-add-wrap{margin-bottom:14px}
+.quick-add-label{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted,#6b7a72);margin-bottom:8px}
+.quick-add-chips{display:flex;flex-wrap:wrap;gap:8px}
+.quick-add-chip{border:1px solid var(--line);background:#fff;border-radius:14px;padding:8px 12px;font-size:13px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:6px;max-width:100%}
+.quick-add-chip small{font-weight:600;color:var(--muted,#6b7a72);font-size:11px}
+.quick-add-chip:active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.quick-add-chip:active small{color:rgba(255,255,255,.85)}
 textarea,input{width:100%;border:1px solid var(--line);background:#fbfdfb;padding:13px 14px;border-radius:14px;outline:none}
 textarea:focus,input:focus{border-color:#6e9d84;box-shadow:0 0 0 3px rgba(47,110,83,.09)}
 .primary,.secondary,.danger{border:0;border-radius:14px;padding:13px 16px;font-weight:800}

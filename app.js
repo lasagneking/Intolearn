@@ -2,7 +2,7 @@
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 2;
-const APP_VERSION = "4.8";
+const APP_VERSION = "4.9";
 const mealTypes = [
   {key:"breakfast", label:"Breakfast", icon:"☀️"},
   {key:"lunch", label:"Lunch", icon:"🌤️"},
@@ -827,7 +827,119 @@ function renderMeals(){
   document.querySelectorAll(".delete-entry").forEach(btn=>btn.onclick=()=>deleteMeal(btn.dataset.meal, Number(btn.dataset.index), false, dateKey()));
 }
 
+// --- Quick add: surfaces your own past entries so common meals don't
+// need retyping, plus feeds the food-name autocomplete list. ---
+function buildFoodHistory(){
+  const byMeal={};
+  mealTypes.forEach(m=>byMeal[m.key]=new Map());
+  const allNames=new Map();
+
+  Object.entries(state.days||{}).forEach(([dayKey,day])=>{
+    mealTypes.forEach(m=>{
+      (day.meals?.[m.key]||[]).forEach(item=>{
+        const rawName=(item?.name||"").trim();
+        if(!rawName) return;
+        const key=rawName.toLowerCase();
+        const at=item.updatedAt || item.createdAt || dayKey;
+
+        const map=byMeal[m.key];
+        const existing=map.get(key);
+        if(existing){
+          existing.count++;
+          if(!existing.lastAt || at>existing.lastAt){ existing.lastAt=at; existing.template=item; }
+        }else{
+          map.set(key,{count:1,lastAt:at,template:item});
+        }
+
+        const allExisting=allNames.get(key);
+        if(!allExisting || at>allExisting.lastAt){
+          allNames.set(key,{name:rawName,lastAt:at});
+        }
+      });
+    });
+  });
+  return {byMeal,allNames};
+}
+
+function applyHistoryTemplate(item){
+  document.getElementById("foodName").value=item.name||"";
+  document.getElementById("foodName").classList.remove("field-error");
+  document.getElementById("ingredients").value=(item.ingredients||[]).join("\n");
+
+  photoData=item.photo||"";
+  document.getElementById("photoPreview").innerHTML=photoData
+    ? `<img src="${photoData}" alt="${escapeHtml(item.name||"Product")}">`
+    : "";
+
+  const bn=document.getElementById("mealBarcodeSource");
+  if(item.barcode){
+    mealBarcodeData={
+      barcode:item.barcode,
+      name:item.name||"",
+      brand:item.brand||"",
+      ingredientsText:(item.ingredients||[]).join(", "),
+      allergens:item.allergens||[],
+      image:item.photo||"",
+      source:item.source||"Open Food Facts",
+      allergenSource:item.allergenSource||"",
+      allergenConfidence:"structured",
+      fromCache:true
+    };
+    if(bn){
+      bn.textContent=`▥ Barcode ${item.barcode} · ${item.source||"Open Food Facts"}`;
+      bn.classList.remove("hidden");
+    }
+  }else{
+    mealBarcodeData=null;
+    if(bn){ bn.textContent=""; bn.classList.add("hidden"); }
+  }
+
+  renderFamilies((item.ingredients||[]).join(" "));
+  showToast(`Filled in from "${item.name}" — review and save`);
+}
+
+function renderQuickAdd(meal){
+  const wrap=document.getElementById("quickAddWrap");
+  const chipsBox=document.getElementById("quickAddChips");
+  if(!wrap || !chipsBox) return;
+
+  const {byMeal}=buildFoodHistory();
+  const entries=[...byMeal[meal].values()]
+    .sort((a,b)=> b.count-a.count || (b.lastAt>a.lastAt?1:-1))
+    .slice(0,6);
+
+  if(!entries.length){
+    wrap.classList.add("hidden");
+    chipsBox.innerHTML="";
+    return;
+  }
+
+  wrap.classList.remove("hidden");
+  chipsBox.innerHTML=entries.map((e,i)=>
+    `<button type="button" class="quick-add-chip" data-quick-index="${i}">${escapeHtml(e.template.name)} <small>×${e.count}</small></button>`
+  ).join("");
+
+  chipsBox.querySelectorAll(".quick-add-chip").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      applyHistoryTemplate(entries[Number(btn.dataset.quickIndex)].template);
+    });
+  });
+}
+
+function populateFoodNameDatalist(){
+  const list=document.getElementById("foodNameList");
+  if(!list) return;
+  const {allNames}=buildFoodHistory();
+  list.innerHTML=[...allNames.values()]
+    .sort((a,b)=> (b.lastAt>a.lastAt?1:-1))
+    .slice(0,50)
+    .map(x=>`<option value="${escapeHtml(x.name)}"></option>`)
+    .join("");
+}
+
 function resetMealForm(){
+  document.getElementById("quickAddWrap").classList.add("hidden");
+  document.getElementById("quickAddChips").innerHTML="";
   document.getElementById("foodName").classList.remove("field-error");
   document.getElementById("foodName").value="";
   document.getElementById("ingredients").value="";
@@ -863,6 +975,9 @@ function openMeal(meal, index=null, entryDateKey=null){
   document.getElementById("mealDialogEyebrow").textContent=index===null ? "ADD ENTRY" : "PRODUCT DETAILS";
   document.getElementById("saveMealBtn").textContent=index===null ? "Save entry" : "Save changes";
   document.getElementById("deleteMealBtn").classList.toggle("hidden", index===null);
+
+  populateFoodNameDatalist();
+  if(index===null) renderQuickAdd(meal);
 
   if(index!==null){
     const item=getDay(editingDateKey).meals[meal][index];
