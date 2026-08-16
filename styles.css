@@ -344,3 +344,24 @@ dialog input,dialog textarea{margin-bottom:14px}
   .barcode-diary-image{width:78px;height:78px}
   .barcode-diary-copy strong{font-size:16px}
 }
+
+/* v4.7 allergen evidence hierarchy */
+.allergen-unavailable,
+.allergen-none-detected{
+  display:inline-flex;
+  align-items:center;
+  padding:7px 10px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:800;
+}
+.allergen-unavailable{
+  background:#fff1dc;
+  color:#7a5a20;
+  border:1px solid #ead2a5;
+}
+.allergen-none-detected{
+  background:#eef4f1;
+  color:#61776c;
+  border:1px solid #d9e5df;
+}

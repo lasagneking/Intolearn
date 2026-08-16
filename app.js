@@ -1,7 +1,8 @@
 
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
-const APP_VERSION = "4.6";
+const PRODUCT_CACHE_SCHEMA = 2;
+const APP_VERSION = "4.7";
 const mealTypes = [
   {key:"breakfast", label:"Breakfast", icon:"☀️"},
   {key:"lunch", label:"Lunch", icon:"🌤️"},
@@ -185,13 +186,83 @@ function normaliseOFFAllergens(tags=[]){
 function offImageUrl(product){
   return product?.image_front_url || product?.image_front_small_url || "";
 }
-function compactOFFProduct(barcode, product){
+function textList(value){
+  if(Array.isArray(value)) return value.map(String).filter(Boolean);
+  if(typeof value==="string"){
+    return value.split(/[,;]/).map(x=>x.trim()).filter(Boolean);
+  }
+  return [];
+}
+function stripOFFMarkup(text){
+  return String(text||"")
+    .replace(/<[^>]+>/g," ")
+    .replace(/&nbsp;/gi," ")
+    .replace(/&amp;/gi,"&")
+    .replace(/\s+/g," ")
+    .trim();
+}
+function resolveOFFAllergens(product, ingredientsText){
+  const structured=normaliseOFFAllergens(product.allergens_tags||[]);
+  if(structured.length){
+    return {
+      allergens:structured,
+      source:"Open Food Facts structured allergen data",
+      confidence:"structured"
+    };
+  }
+
+  const derivedRaw=[
+    ...textList(product.allergens_from_ingredients),
+    ...textList(product.allergens_from_ingredients_tags)
+  ];
+  const derivedTags=normaliseOFFAllergens(derivedRaw);
+  if(derivedTags.length){
+    return {
+      allergens:derivedTags,
+      source:"Open Food Facts ingredient-derived allergen data",
+      confidence:"ingredient-derived"
+    };
+  }
+
+  if(ingredientsText){
+    const local=detectUKAllergens(ingredientsText);
+    if(local.length){
+      return {
+        allergens:local,
+        source:"Intolearn analysis of Open Food Facts ingredient text",
+        confidence:"intolearn-derived"
+      };
+    }
+  }
+
   return {
+    allergens:[],
+    source:ingredientsText
+      ? "No recognised allergens detected from available ingredient data"
+      : "Allergen information unavailable",
+    confidence:ingredientsText ? "none-detected" : "missing"
+  };
+}
+function compactOFFProduct(barcode, product){
+  const ingredientsText=stripOFFMarkup(
+    product.ingredients_text ||
+    product.ingredients_text_en ||
+    product.ingredients_text_with_allergens ||
+    product.ingredients_text_with_allergens_en ||
+    ""
+  );
+
+  const resolved=resolveOFFAllergens(product,ingredientsText);
+
+  return {
+    cacheSchema:PRODUCT_CACHE_SCHEMA,
     barcode:String(barcode),
     name:product.product_name || product.product_name_en || "Unknown product",
     brand:product.brands || "",
-    ingredientsText:product.ingredients_text || product.ingredients_text_en || "",
-    allergens:normaliseOFFAllergens(product.allergens_tags || []),
+    ingredientsText,
+    allergens:resolved.allergens,
+    allergenSource:resolved.source,
+    allergenConfidence:resolved.confidence,
     traces:(product.traces_tags||[]).map(x=>String(x).replace(/^en:/,"").replaceAll("-"," ")),
     labels:product.labels_tags || [],
     image:offImageUrl(product),
@@ -204,14 +275,17 @@ async function fetchOFFProduct(barcode){
   if(!code) throw new Error("Enter or scan a barcode.");
 
   const cache=loadProductCache();
-  if(cache[code]){
+  if(cache[code] && cache[code].cacheSchema===PRODUCT_CACHE_SCHEMA){
     return {...cache[code], fromCache:true};
   }
 
   const fields=[
     "code","product_name","product_name_en","brands",
-    "ingredients_text","ingredients_text_en","allergens_tags","traces_tags",
-    "labels_tags","image_front_url","image_front_small_url"
+    "ingredients_text","ingredients_text_en",
+    "ingredients_text_with_allergens","ingredients_text_with_allergens_en",
+    "allergens_tags","allergens_from_ingredients","allergens_from_ingredients_tags",
+    "traces_tags","labels_tags","tags_sources",
+    "image_front_url","image_front_small_url"
   ].join(",");
   const url=`https://world.openfoodfacts.org/api/v3.6/product/${encodeURIComponent(code)}.json?fields=${encodeURIComponent(fields)}`;
   const response=await fetch(url,{headers:{"Accept":"application/json"}});
@@ -231,17 +305,37 @@ function renderBarcodeProduct(product){
   const card=document.getElementById("barcodeProductCard");
   const imgWrap=document.getElementById("barcodeProductImageWrap");
   const tags=document.getElementById("barcodeAllergenTags");
+
   document.getElementById("barcodeProductName").textContent=product.name||"Unknown product";
   document.getElementById("barcodeProductBrand").textContent=product.brand || `Barcode ${product.barcode}`;
+
   imgWrap.innerHTML=product.image
     ? `<img src="${escapeHtml(product.image)}" alt="${escapeHtml(product.name||"Product")}">`
     : `<div class="barcode-product-image-placeholder">▥</div>`;
-  tags.innerHTML=product.allergens.length
-    ? product.allergens.map(x=>`<span class="allergen-tag">${escapeHtml(x)}</span>`).join("")
-    : `<span class="muted">No structured allergens listed</span>`;
+
+  if(product.allergens.length){
+    tags.innerHTML=product.allergens.map(x=>`<span class="allergen-tag">${escapeHtml(x)}</span>`).join("");
+  }else if(product.allergenConfidence==="missing"){
+    tags.innerHTML=`<span class="allergen-unavailable">Allergen information unavailable</span>`;
+  }else{
+    tags.innerHTML=`<span class="allergen-none-detected">No recognised allergen detected from the available data</span>`;
+  }
+
   const pieces=[];
-  pieces.push(product.fromCache ? "Loaded from your local Intolearn product cache." : "Loaded from Open Food Facts.");
-  if(!product.ingredientsText) pieces.push("Ingredient text is missing.");
+  pieces.push(product.fromCache
+    ? "Loaded from your local Intolearn product cache."
+    : "Loaded from Open Food Facts.");
+
+  if(product.allergenSource) pieces.push(`Allergen source: ${product.allergenSource}.`);
+
+  if(!product.ingredientsText){
+    pieces.push("Ingredient text is missing — use the ingredient-photo fallback and verify the pack.");
+  }else if(product.allergenConfidence==="intolearn-derived"){
+    pieces.push("The allergen list above was inferred by Intolearn from Open Food Facts ingredient text rather than a populated structured allergen field.");
+  }else if(product.allergenConfidence==="none-detected"){
+    pieces.push("No recognised allergen was found in the available ingredient data; this is not a guarantee that the product is allergen-free.");
+  }
+
   document.getElementById("barcodeProductCompleteness").textContent=pieces.join(" ");
   card.classList.remove("hidden");
   document.getElementById("barcodeNotFound").classList.add("hidden");
@@ -494,13 +588,15 @@ function applyBarcodeProductToChecker(product){
     resultBox.className="checker-result match";
     icon.textContent="!";
     title.textContent="Selected trigger detected";
-    text.textContent="Open Food Facts lists one or more of your selected triggers for this product.";
+    text.textContent=`One or more selected triggers were found. Source: ${product.allergenSource||"available product data"}.`;
     tags.innerHTML=matches.map(x=>`<span class="checker-match-tag">${escapeHtml(x)}</span>`).join("");
   }else{
     resultBox.className="checker-result clear";
     icon.textContent="✓";
     title.textContent="No selected trigger listed";
-    text.textContent="No selected trigger was found in the structured allergen data/available ingredient data. Always verify the original packaging.";
+    text.textContent=product.allergenConfidence==="missing"
+      ? "Open Food Facts does not currently provide enough allergen or ingredient information for a reliable check. Use the ingredient-photo fallback and verify the packaging."
+      : "No selected trigger was found in the available structured/ingredient data. This is not a safety guarantee — always verify the original packaging.";
     tags.innerHTML="";
   }
   document.getElementById("checkerExtracted").textContent=product.ingredientsText||"No ingredient text supplied by Open Food Facts.";
@@ -766,6 +862,8 @@ function openMeal(meal, index=null, entryDateKey=null){
         allergens:item.allergens||[],
         image:item.photo||"",
         source:item.source||"Open Food Facts",
+        allergenSource:item.allergenSource||"",
+        allergenConfidence:"structured",
         fromCache:true
       };
       const bn=document.getElementById("mealBarcodeSource");
@@ -820,6 +918,7 @@ function saveMeal(){
     barcode:mealBarcodeData?.barcode||"",
     brand:mealBarcodeData?.brand||"",
     source:mealBarcodeData ? "Open Food Facts" : "Manual/OCR",
+    allergenSource:mealBarcodeData?.allergenSource||"",
     createdAt: editingIndex===null ? new Date().toISOString() : (getDay(editingDateKey).meals[activeMeal][editingIndex]?.createdAt || new Date().toISOString()),
     updatedAt:new Date().toISOString()
   };
