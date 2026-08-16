@@ -209,7 +209,7 @@
         <div id="trendCards" class="trend-stack"></div>
         <div class="card helper-card">
           <h3>How this works</h3>
-          <p>Ingredients are compared with symptom days in your local diary. The more consistently you log, the more useful this becomes.</p>
+          <p>Ingredients are compared with symptom days in your local diary, counting a symptom logged either the same day or the next day. Ingredients logged on almost every day, or without enough repeats, are left out — only ones noticeably above your own baseline symptom rate are shown. The more consistently you log, the more useful this becomes.</p>
         </div>
       </section>
     </main>
@@ -461,6 +461,15 @@
   <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
-  <script src="app.js?v=47"></script>
+  <script src="app.js?v=48"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js").catch(err => {
+          console.warn("Service worker registration failed", err);
+        });
+      });
+    }
+  </script>
 </body>
 </html>

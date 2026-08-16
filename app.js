@@ -2,7 +2,7 @@
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 2;
-const APP_VERSION = "4.7";
+const APP_VERSION = "4.8";
 const mealTypes = [
   {key:"breakfast", label:"Breakfast", icon:"☀️"},
   {key:"lunch", label:"Lunch", icon:"🌤️"},
@@ -727,7 +727,27 @@ function loadState(){
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || blankState(); }
   catch { return blankState(); }
 }
-function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function isQuotaError(err){
+  return err && (
+    err.name === "QuotaExceededError" ||
+    err.name === "NS_ERROR_DOM_QUOTA_REACHED" ||
+    err.code === 22 || err.code === 1014
+  );
+}
+function saveState(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    return true;
+  }catch(err){
+    console.error("saveState failed",err);
+    if(isQuotaError(err)){
+      showToast("⚠️ Storage is full — this entry was NOT saved. Free up space in Settings.");
+    }else{
+      showToast("⚠️ Could not save — please try again.");
+    }
+    return false;
+  }
+}
 function dateKey(d=new Date()){ return d.toISOString().slice(0,10); }
 function ensureDay(key=dateKey()){
   if(!state.days[key]) state.days[key]={ meals:{breakfast:[],lunch:[],dinner:[],snacks:[]}, exit:{} };
@@ -925,13 +945,27 @@ function saveMeal(){
 
   const isNew = editingIndex===null;
 
+  const targetList=isNew ? currentDay().meals[activeMeal] : getDay(editingDateKey).meals[activeMeal];
+  const previousEntry = isNew ? undefined : targetList[editingIndex];
+
   if(isNew){
-    currentDay().meals[activeMeal].push(entry);
+    targetList.push(entry);
   }else{
-    getDay(editingDateKey).meals[activeMeal][editingIndex]=entry;
+    targetList[editingIndex]=entry;
   }
 
-  saveState();
+  const saved = saveState();
+
+  if(!saved){
+    // Roll back the in-memory change so state and storage don't diverge,
+    // and keep the dialog open so nothing is silently lost.
+    if(isNew){
+      targetList.pop();
+    }else{
+      targetList[editingIndex]=previousEntry;
+    }
+    return;
+  }
 
   // Close first on iPhone/Safari so the user gets immediate visual confirmation
   // that the action completed, even if a later render step is delayed.
@@ -1031,8 +1065,42 @@ function closeCropDialog(){
 function blobToFile(blob,name="ingredient-crop.jpg"){
   return new File([blob],name,{type:blob.type||"image/jpeg"});
 }
-function processChosenImage(file, previewData){
+
+// OCR gets the full-resolution crop (accuracy matters there). What we
+// persist to localStorage is a much smaller, more compressed copy, so a
+// diary full of photos doesn't blow the browser storage quota.
+const STORAGE_PHOTO_MAX_DIM = 640;
+const STORAGE_PHOTO_QUALITY = 0.55;
+function resizeSourceForStorage(source, sw, sh){
+  let w=sw, h=sh;
+  if(w>h && w>STORAGE_PHOTO_MAX_DIM){ h=Math.round(h*STORAGE_PHOTO_MAX_DIM/w); w=STORAGE_PHOTO_MAX_DIM; }
+  else if(h>=w && h>STORAGE_PHOTO_MAX_DIM){ w=Math.round(w*STORAGE_PHOTO_MAX_DIM/h); h=STORAGE_PHOTO_MAX_DIM; }
+  const canvas=document.createElement("canvas");
+  canvas.width=w; canvas.height=h;
+  const ctx=canvas.getContext("2d");
+  ctx.imageSmoothingEnabled=true;
+  ctx.imageSmoothingQuality="high";
+  ctx.drawImage(source,0,0,w,h);
+  return canvas.toDataURL("image/jpeg",STORAGE_PHOTO_QUALITY);
+}
+function resizeCanvasForStorage(sourceCanvas){
+  return resizeSourceForStorage(sourceCanvas, sourceCanvas.width, sourceCanvas.height);
+}
+function resizeDataURLForStorage(dataURL){
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onload=()=>{
+      try{ resolve(resizeSourceForStorage(img, img.naturalWidth||img.width, img.naturalHeight||img.height)); }
+      catch(e){ console.warn("Storage resize failed, keeping original",e); resolve(dataURL); }
+    };
+    img.onerror=()=>resolve(dataURL);
+    img.src=dataURL;
+  });
+}
+function processChosenImage(file, previewData, storageData){
   closeCropDialog();
+  // Checker photos are never persisted to state, so no storage-sized copy is needed there.
+  const stored = storageData || previewData;
 
   if(cropDestination==="checker"){
     document.getElementById("checkerPreview").innerHTML=`<img src="${previewData}" alt="Ingredient label preview">`;
@@ -1040,8 +1108,8 @@ function processChosenImage(file, previewData){
     return;
   }
 
-  photoData=previewData;
-  document.getElementById("photoPreview").innerHTML=`<img src="${previewData}" alt="Ingredient photo preview">`;
+  photoData=stored;
+  document.getElementById("photoPreview").innerHTML=`<img src="${stored}" alt="Ingredient photo preview">`;
   scanIngredientImage(file);
 }
 document.getElementById("confirmCropBtn").addEventListener("click",()=>{
@@ -1054,15 +1122,24 @@ document.getElementById("confirmCropBtn").addEventListener("click",()=>{
   });
   canvas.toBlob(blob=>{
     if(!blob) return;
+    // Keep the full-resolution blob for OCR accuracy...
     const file=blobToFile(blob);
-    const data=canvas.toDataURL("image/jpeg",0.92);
-    processChosenImage(file,data);
+    const previewData=canvas.toDataURL("image/jpeg",0.92);
+    // ...but only store a much smaller, more compressed copy.
+    const storageData=resizeCanvasForStorage(canvas);
+    processChosenImage(file,previewData,storageData);
   },"image/jpeg",0.92);
 });
-document.getElementById("useFullPhotoBtn").addEventListener("click",()=>{
+document.getElementById("useFullPhotoBtn").addEventListener("click",async ()=>{
   if(!pendingPhotoFile) return;
   const reader=new FileReader();
-  reader.onload=()=>processChosenImage(pendingPhotoFile,reader.result);
+  reader.onload=async ()=>{
+    const previewData=reader.result;
+    const storageData = cropDestination==="checker"
+      ? previewData
+      : await resizeDataURLForStorage(previewData);
+    processChosenImage(pendingPhotoFile,previewData,storageData);
+  };
   reader.readAsDataURL(pendingPhotoFile);
 });
 document.getElementById("cancelCropBtn").addEventListener("click",()=>{
@@ -1169,7 +1246,10 @@ document.getElementById("saveExitBtn").onclick=()=>{
     notes:document.getElementById("exitNotes").value.trim(),
     updatedAt:new Date().toISOString()
   };
-  saveState(); renderAll(); showToast("Exit Interview saved");
+  if(saveState()){
+    renderAll();
+    showToast("Exit Interview saved");
+  }
 };
 
 function renderExit(){
@@ -1322,6 +1402,47 @@ function renderMonthResults(){
 document.getElementById("monthFilter").addEventListener("input",renderMonthResults);
 
 
+// --- Association engine shared by the Report and Trends tabs ---
+// Two changes from the original same-day-only, any-repeat-counts version:
+//  1. A day "reacts" if symptoms were logged either that day OR the next
+//     day, since GI symptoms often show up with a lag rather than same-day.
+//  2. Ingredients/groups that show up on almost every logged day (e.g.
+//     "milk" if you have it daily) are excluded — they can't discriminate
+//     anything, and only things whose rate is noticeably above your own
+//     personal baseline symptom rate are surfaced, rather than everything
+//     that's ever co-occurred twice.
+function dayIsSymptomatic(day){
+  return !!(day && ((day.exit?.symptoms||[]).length>0 || ["Poor","Meh"].includes(day.exit?.feeling)));
+}
+function dayReactionWindow(k){
+  const d=new Date(k+"T12:00:00"); d.setDate(d.getDate()+1);
+  return dayIsSymptomatic(state.days[k]) || dayIsSymptomatic(state.days[dateKey(d)]);
+}
+function buildAssociationStats(dateKeys, getTags, {minDays=3, minLiftPts=15, maxPresenceRatio=0.85}={}){
+  const statsRaw={};
+  let consideredDays=0, consideredReacted=0;
+  dateKeys.forEach(k=>{
+    const day=state.days[k];
+    if(!day) return;
+    consideredDays++;
+    const reacted=dayReactionWindow(k);
+    if(reacted) consideredReacted++;
+    new Set(getTags(day)).forEach(tag=>{
+      statsRaw[tag] ||= {days:0,symptomDays:0};
+      statsRaw[tag].days++;
+      if(reacted) statsRaw[tag].symptomDays++;
+    });
+  });
+  const baseline = consideredDays ? consideredReacted/consideredDays : 0;
+  const ranked = Object.entries(statsRaw)
+    .map(([name,v])=>({name,...v,rate:v.days?v.symptomDays/v.days:0}))
+    .filter(x=>x.days>=minDays)
+    .filter(x=>!consideredDays || (x.days/consideredDays)<maxPresenceRatio)
+    .filter(x=>(x.rate-baseline)*100>=minLiftPts)
+    .sort((a,b)=>(b.rate-baseline)-(a.rate-baseline) || b.days-a.days);
+  return {statsRaw, ranked, baseline, consideredDays, consideredReacted};
+}
+
 let reportDays=30;
 function reportDateKeys(days){
   const end=new Date(); end.setHours(12,0,0,0);
@@ -1339,27 +1460,23 @@ function reportMealIngredients(x){
 }
 function renderReport(){
   const keys=reportDateKeys(reportDays);
-  const keySet=new Set(keys);
   let meals=0, scans=0, exits=0, symptomDays=0, comfortable=0;
-  const stats={};
 
   keys.forEach(k=>{
     const day=state.days[k]||{};
-    const symptomatic=(day.exit?.symptoms||[]).length>0 || ["Poor","Meh"].includes(day.exit?.feeling);
+    const symptomatic=dayIsSymptomatic(day);
     if(symptomatic) symptomDays++;
     if(["Good","Great"].includes(day.exit?.feeling) && !symptomatic) comfortable++;
     if(day.exit && Object.keys(day.exit).length) exits++;
-
-    const dayTags=new Set();
     mealTypes.forEach(m=>(day.meals?.[m.key]||[]).forEach(x=>{
-      meals++; if(x.photoData) scans++;
-      reportMealIngredients(x).forEach(t=>dayTags.add(t));
+      meals++; if(x.photo) scans++;
     }));
-    dayTags.forEach(tag=>{
-      stats[tag] ||= {days:0,symptomDays:0};
-      stats[tag].days++;
-      if(symptomatic) stats[tag].symptomDays++;
-    });
+  });
+
+  const {statsRaw, ranked, baseline, consideredDays}=buildAssociationStats(keys, day=>{
+    const tags=new Set();
+    mealTypes.forEach(m=>(day.meals?.[m.key]||[]).forEach(x=>reportMealIngredients(x).forEach(t=>tags.add(t))));
+    return tags;
   });
 
   const start=new Date(); start.setDate(start.getDate()-reportDays+1);
@@ -1371,18 +1488,15 @@ function renderReport(){
     ["📷",scans,"Ingredient scans"],["📋",exits,"Exit Interviews"]
   ].map(s=>`<div class="report-stat"><span>${s[0]}</span><strong>${s[1]}</strong><small>${s[2]}</small></div>`).join("");
 
-  const ranked=Object.entries(stats).map(([name,v])=>({...v,name,rate:v.days?v.symptomDays/v.days:0}))
-    .sort((a,b)=>b.rate-a.rate||b.days-a.days);
-
-  const connections=ranked.filter(x=>x.days>=2).slice(0,5);
+  const connections=ranked.slice(0,5);
   document.getElementById("reportConnections").innerHTML=connections.length?connections.map(x=>`
     <div class="connection-card">
       <div class="connection-title"><strong>${escapeHtml(titleCase(x.name))}</strong><span class="connection-score">${Math.round(x.rate*100)}%</span></div>
       <div class="connection-bar"><span style="width:${Math.round(x.rate*100)}%"></span></div>
-      <p>${x.symptomDays} of ${x.days} recorded exposure day${x.days===1?"":"s"} also had symptoms recorded.</p>
-    </div>`).join(""):`<p class="muted">Not enough repeated exposure data yet. Keep logging and this section will build automatically.</p>`;
+      <p>${x.symptomDays} of ${x.days} exposure day${x.days===1?"":"s"} were followed by symptoms that day or the next — vs ${Math.round(baseline*100)}% of all recorded days.</p>
+    </div>`).join(""):`<p class="muted">${consideredDays<3?"Not enough recorded days yet.":"No ingredient stands out clearly from your usual baseline yet."} Keep logging and this section will build automatically.</p>`;
 
-  const exposures=Object.entries(stats).map(([name,v])=>({name,...v})).sort((a,b)=>b.days-a.days).slice(0,8);
+  const exposures=Object.entries(statsRaw).map(([name,v])=>({name,...v})).sort((a,b)=>b.days-a.days).slice(0,8);
   document.getElementById("reportExposures").innerHTML=exposures.length?exposures.map(x=>`
     <div class="exposure-row"><strong>${escapeHtml(titleCase(x.name))}</strong><span>${x.days} day${x.days===1?"":"s"}</span></div>`).join(""):`<p class="muted">No ingredient groups recorded in this period yet.</p>`;
 
@@ -1409,30 +1523,21 @@ document.querySelectorAll(".range-btn").forEach(btn=>btn.addEventListener("click
 }));
 
 function renderTrends(){
-  const ingredientStats={};
-  Object.entries(state.days).forEach(([k,day])=>{
-    const symptomatic=(day.exit?.symptoms||[]).length>0 || ["Poor","Meh"].includes(day.exit?.feeling);
+  const allKeys=Object.keys(state.days||{});
+  const {ranked, baseline, consideredDays}=buildAssociationStats(allKeys, day=>{
     const ingredients=new Set();
     mealTypes.forEach(m=>(day.meals?.[m.key]||[]).forEach(x=>(x.ingredients||[]).forEach(i=>ingredients.add(i.toLowerCase()))));
-    ingredients.forEach(i=>{
-      ingredientStats[i] ||= {days:0,symptomDays:0};
-      ingredientStats[i].days++;
-      if(symptomatic) ingredientStats[i].symptomDays++;
-    });
+    return ingredients;
   });
-  const trends=Object.entries(ingredientStats)
-    .filter(([,v])=>v.days>=2)
-    .map(([name,v])=>({name,...v,rate:v.symptomDays/v.days}))
-    .sort((a,b)=>b.rate-a.rate || b.days-a.days)
-    .slice(0,6);
+  const trends=ranked.slice(0,6);
   document.getElementById("trendCards").innerHTML=trends.length?trends.map(t=>`
     <div class="trend-card">
       <h3>${escapeHtml(titleCase(t.name))}</h3>
-      <p class="muted">${t.symptomDays} of ${t.days} logged day${t.days===1?"":"s"} containing this ingredient also had symptoms.</p>
+      <p class="muted">${t.symptomDays} of ${t.days} logged day${t.days===1?"":"s"} with this ingredient were followed by symptoms that day or the next — vs ${Math.round(baseline*100)}% of all your recorded days.</p>
       <div class="trend-bar"><span style="width:${Math.round(t.rate*100)}%"></span></div>
-      <div class="trend-meta"><span>Association in your diary</span><strong>${Math.round(t.rate*100)}%</strong></div>
+      <div class="trend-meta"><span>Rate above your baseline</span><strong>+${Math.round((t.rate-baseline)*100)}pt</strong></div>
     </div>
-  `).join(""):`<div class="card"><h3>Not enough data yet</h3><p class="muted">Log ingredients and symptoms over several days and Intolearn will start surfacing repeated associations here.</p></div>`;
+  `).join(""):`<div class="card"><h3>Not enough data yet</h3><p class="muted">${consideredDays<3?"Log a few more days and Intolearn will start surfacing associations here.":"Nothing stands out clearly from your usual baseline yet — that's a good sign, or you just need more repeated exposures logged."}</p></div>`;
 }
 
 document.querySelectorAll(".nav-item").forEach(btn=>{
