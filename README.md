@@ -1,6 +1,6 @@
 # Intolearn — by Lee Thumwood
 
-Personal-use prototype. Current build: **v4.8**.
+Personal-use prototype. Current build: **v5.0**.
 
 ## Run it
 
@@ -44,9 +44,13 @@ Ingredient photos are compressed before being stored (resized and re-compressed 
 
 ## Offline behaviour
 
-A service worker (`sw.js`) precaches the app shell (HTML/CSS/JS, icons) and the third-party libraries (Quagga2, Tesseract.js, CropperJS) on first successful load, so the app continues to open and basic scanning/cropping keeps working without a connection afterwards. Barcode lookups against Open Food Facts still require a connection; cached products (already looked up once) work offline.
+A service worker (`sw.js`) precaches the app shell (HTML/CSS/JS, icons), the Google Fonts stylesheet, and the third-party libraries (Quagga2, Tesseract.js, CropperJS) on first successful load, so the app continues to open and basic scanning/cropping keeps working without a connection afterwards. Barcode lookups against Open Food Facts still require a connection; cached products (already looked up once) work offline.
 
 **If you edit `app.js`, `styles.css`, `index.html`, or the icons: bump `CACHE_VERSION` in `sw.js`.** Otherwise installed devices may keep serving the old cached versions of those files.
+
+## Visual identity
+
+v5.0 moved off the original light green theme to a dark, editorial "field notebook" look: near-black warm charcoal background, parchment-toned text, Fraunces for headlines, Archivo for body/UI, IBM Plex Mono for labels and data. Three accent colours carry meaning rather than decoration: amber (`--trace`) for active/tracking states, teal (`--safe`) for comfortable/clear results, rust (`--flag`) for symptom/allergen flags. All colours and fonts are CSS custom properties in `styles.css` (`:root`) — change them there rather than hunting through individual rules.
 
 ## Known limitations
 

@@ -2,7 +2,7 @@
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 2;
-const APP_VERSION = "4.9";
+const APP_VERSION = "5.0";
 const mealTypes = [
   {key:"breakfast", label:"Breakfast", icon:"☀️"},
   {key:"lunch", label:"Lunch", icon:"🌤️"},
@@ -1645,6 +1645,8 @@ function renderTrends(){
     return ingredients;
   });
   const trends=ranked.slice(0,6);
+  const trendsEyebrow=document.getElementById("trendsEyebrow");
+  if(trendsEyebrow) trendsEyebrow.textContent=`TRENDS / ${trends.length} FOUND`;
   document.getElementById("trendCards").innerHTML=trends.length?trends.map(t=>`
     <div class="trend-card">
       <h3>${escapeHtml(titleCase(t.name))}</h3>
@@ -1677,8 +1679,15 @@ document.getElementById("clearDataBtn").onclick=()=>{
   }
 };
 
+function renderTodayEyebrow(){
+  const el=document.getElementById("todayEyebrow");
+  if(!el) return;
+  const n=Object.keys(state.days||{}).length || 1;
+  el.textContent=`TODAY / DAY ${String(n).padStart(2,"0")}`;
+}
+
 function renderAll(){
-  const jobs=[renderMeals,renderExit,renderWeek,renderMonth,renderTrends,renderReport];
+  const jobs=[renderMeals,renderExit,renderWeek,renderMonth,renderTrends,renderReport,renderTodayEyebrow];
   jobs.forEach(fn=>{
     try{ fn(); }
     catch(err){ console.error(fn.name+" failed",err); }

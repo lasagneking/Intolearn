@@ -3,13 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#eef4ef" />
+  <meta name="theme-color" content="#121110" />
   <title>Intolearn by Lee Thumwood</title>
   <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,500;1,9..144,600&family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css" />
   <link rel="stylesheet" href="styles.css" />
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Intolearn">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 </head>
@@ -18,7 +21,7 @@
     <header class="topbar">
       <div>
         <div class="brand">Intolearn</div>
-        <div class="byline">by Lee Thumwood</div>
+        <div class="byline">Field notes — Lee Thumwood</div>
       </div>
       <button class="icon-button" id="settingsBtn" aria-label="Settings">⚙️</button>
     </header>
@@ -27,7 +30,7 @@
       <section id="todayView" class="view active">
         <div class="hero-card">
           <div>
-            <div class="eyebrow">TODAY</div>
+            <div class="eyebrow" id="todayEyebrow">TODAY</div>
             <h1 id="todayDate">Today</h1>
             <p>Small entries, clearer patterns.</p>
           </div>
@@ -202,7 +205,7 @@
 
       <section id="trendsView" class="view">
         <div class="page-heading">
-          <div class="eyebrow">TRENDS</div>
+          <div class="eyebrow" id="trendsEyebrow">TRENDS</div>
           <h1>What may be worth noticing</h1>
           <p>Intolearn highlights associations — not diagnoses.</p>
         </div>
@@ -467,7 +470,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
-  <script src="app.js?v=49"></script>
+  <script src="app.js?v=50"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
