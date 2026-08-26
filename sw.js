@@ -1,7 +1,7 @@
 // Intolearn service worker
 // Bump CACHE_VERSION whenever app.js/styles.css/index.html change so the
 // new files actually get picked up instead of being served stale forever.
-const CACHE_VERSION = "intolearn-v4";
+const CACHE_VERSION = "intolearn-v5";
 const APP_SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -28,7 +28,7 @@ const CDN_SHELL_URLS = [
   "https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js",
   "https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.12.1/dist/quagga.min.js",
   "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js",
-  "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,500;1,9..144,600&family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap"
+  "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,500;1,9..144,600&family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Petit+Formal+Script&display=swap"
 ];
 const CDN_ORIGINS = ["https://cdn.jsdelivr.net", "https://fonts.googleapis.com", "https://fonts.gstatic.com"];
 
