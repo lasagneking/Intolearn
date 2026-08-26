@@ -46,7 +46,7 @@ Ingredient photos are compressed before being stored (resized and re-compressed 
 
 A service worker (`sw.js`) precaches the app shell (HTML/CSS/JS, icons), the Google Fonts stylesheet, and the third-party libraries (Quagga2, Tesseract.js, CropperJS) on first successful load, so the app continues to open and basic scanning/cropping keeps working without a connection afterwards. Barcode lookups against Open Food Facts still require a connection; cached products (already looked up once) work offline.
 
-**If you edit `app.js`, `styles.css`, `index.html`, or the icons: bump `CACHE_VERSION` in `sw.js`.** Otherwise installed devices may keep serving the old cached versions of those files.
+**If you edit `app.js`, `styles.css`, `index.html`, or the icons: bump `CACHE_VERSION` in `sw.js`, AND bump the `?v=NN` query string on both the `app.js` and `styles.css` `<link>`/`<script>` tags in `index.html` (keep them in sync — a mismatch was the cause of a real bug in v5.4, where a stale cached stylesheet had no rule for a new element the JS had started injecting, and it rendered fully unstyled).** Otherwise installed devices, and even a plain browser HTTP cache with no service worker involved, may keep serving an old file indefinitely.
 
 ## Onboarding & profile
 
