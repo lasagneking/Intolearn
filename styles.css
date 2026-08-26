@@ -250,7 +250,8 @@ dialog input,dialog textarea{margin-bottom:14px}
 .checker-launch-btn{white-space:nowrap;margin:0}
 #checkerDialog{max-width:650px}.checker-shell{padding:22px}.checker-intro{margin-top:-5px}
 .checker-trigger-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;margin:16px 0;background:var(--line-soft)}
-.checker-trigger-grid button{border:0;background:var(--bg);border-radius:0;padding:11px 9px;text-align:left;font-size:12px;font-weight:600;color:var(--ink)}
+.checker-trigger-grid button{border:0;background:var(--bg);border-radius:0;padding:11px 9px;text-align:left;font-size:12px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:8px}
+.checker-trigger-grid button svg{width:17px;height:17px;flex-shrink:0}
 .checker-trigger-grid button.selected{background:var(--trace);color:#161310;border-color:var(--trace)}
 .checker-photo-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
 .checker-preview img{width:100%;max-height:200px;object-fit:contain;border-radius:0;margin-top:12px;background:var(--bg);border:1px solid var(--line)}

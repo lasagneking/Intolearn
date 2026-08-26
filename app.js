@@ -2,7 +2,7 @@
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 2;
-const APP_VERSION = "6.1";
+const APP_VERSION = "6.2";
 
 // Hand-sketched, single-stroke "field notebook" icon set — every icon uses
 // currentColor so it inherits ink/amber automatically on selected/active
@@ -34,6 +34,43 @@ const ICONS={
   tally:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M5 6.5h11M5 12h14M5 17.5h8"/></svg>`,
   gear:`<svg viewBox="0 0 24 24" ${SVG_BASE}><circle cx="12" cy="12" r="3.2"/><path d="M12 3.5v2.3M12 18.2v2.3M20.5 12h-2.3M5.8 12H3.5M17.7 6.3l-1.6 1.6M7.9 16.1l-1.6 1.6M17.7 17.7l-1.6-1.6M7.9 7.9 6.3 6.3"/></svg>`
 };
+
+// Icons for the 22-item allergen/trigger grid shared by Ingredient Checker
+// and onboarding. Keyed by the exact data-trigger value so one map covers
+// both instances of the grid without duplicating 22 SVGs twice in the HTML.
+const ALLERGEN_ICONS={
+  "Cereals containing gluten":`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M12 20V4"/><path d="M12 6l-2.4-1.4M12 6l2.4-1.4M12 9.2l-2.4-1.4M12 9.2l2.4-1.4M12 12.4l-2.4-1.4M12 12.4l2.4-1.4M12 15.6l-2.4-1.4M12 15.6l2.4-1.4"/></svg>`,
+  "Wheat":`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M12 20V4"/><path d="M12 6l-2.4-1.4M12 6l2.4-1.4M12 9.2l-2.4-1.4M12 9.2l2.4-1.4M12 12.4l-2.4-1.4M12 12.4l2.4-1.4M12 15.6l-2.4-1.4M12 15.6l2.4-1.4"/></svg>`,
+  "Milk / dairy":`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M9 4h6l-1 3v12a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V7Z"/><path d="M8.5 10.5h7"/></svg>`,
+  "Lactose":`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M9 4h6l-1 3v12a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V7Z"/><path d="M8.5 10.5h7"/></svg>`,
+  "Egg":`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M12 3.8c-3.2 3.2-5.3 8-5.3 11.3a5.3 5.3 0 1 0 10.6 0c0-3.3-2.1-8.1-5.3-11.3Z"/></svg>`,
+  "Soya":`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M7.5 14.5c0-5 2-9 6-10.5"/><path d="M16.5 9c0 5-2 9-6 10.5"/><circle cx="10.3" cy="9.3" r=".9" fill="currentColor" stroke="none"/><circle cx="12" cy="13" r=".9" fill="currentColor" stroke="none"/><circle cx="13.7" cy="16.7" r=".9" fill="currentColor" stroke="none"/></svg>`,
+  "Peanuts":`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M9.3 4.8a2.8 2.8 0 0 0-2.8 2.8c0 .9.4 1.5.9 2-1 .7-1.5 1.7-1.5 3.1a3.1 3.1 0 0 0 3.1 3.1c.9 0 1.6-.3 2.1-.8.5.5 1.2.8 2.1.8a3.1 3.1 0 0 0 3.1-3.1c0-1.4-.5-2.4-1.5-3.1.5-.5.9-1.1.9-2a2.8 2.8 0 0 0-2.8-2.8c-.9 0-1.6.4-2.1.9-.5-.5-1.2-.9-2.1-.9Z"/></svg>`,
+  "Tree nuts":`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M8.3 11.2a3.7 3.7 0 0 1 7.4 0c0 3.2-1.6 7.4-3.7 9.5-2.1-2.1-3.7-6.3-3.7-9.5Z"/><path d="M8.1 10.6c0-2.1 1.7-3.2 3.9-3.2s3.9 1.1 3.9 3.2"/></svg>`,
+  "Sesame":`<svg viewBox="0 0 24 24" ${SVG_BASE}><ellipse cx="12" cy="13.5" rx="2.8" ry="4.6" transform="rotate(12 12 13.5)"/><path d="M12 8.2V4M12 4l-1.6 1.6M12 4l1.6 1.6"/></svg>`,
+  "Fish":`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M3 12c2-2.3 5-3.7 8.3-3.7 2 0 3.9.6 5.3 1.7L20.5 8v8l-3.9-2c-1.4 1.1-3.3 1.7-5.3 1.7C8 15.7 5 14.3 3 12Z"/><circle cx="8" cy="11" r=".6" fill="currentColor" stroke="none"/></svg>`,
+  "Crustaceans":`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M5 15.3c0-4.8 3-8.8 7.8-8.8 2.9 0 4.7 1.9 4.7 4.3 0 1.9-1.4 3.4-3.3 3.4-1 1.9-2.9 3.3-5.3 3.3-1.4 0-2.9-.7-3.9-2.2Z"/><path d="M8.4 5.8l-1.5-1.4M10.4 4.9l-1-1.9"/></svg>`,
+  "Molluscs":`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M4 14.8c1.8-5.6 5.6-9.3 8-9.3s6.2 3.7 8 9.3c-2.4 1.9-5.3 2.9-8 2.9s-5.6-1-8-2.9Z"/><path d="M12 5.5v9.6M9.2 6.9c0 2.8.9 6 2.8 7.8M14.8 6.9c0 2.8-.9 6-2.8 7.8"/></svg>`,
+  "Celery":`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M12 20V9"/><path d="M12 9c0-2.8 1.4-4.6 3.7-5.5M12 9c0-2.3-.9-4-2.7-4.9"/><path d="M9.2 20h5.6"/></svg>`,
+  "Mustard":`<svg viewBox="0 0 24 24" ${SVG_BASE}><circle cx="12" cy="13" r="3"/><path d="M12 10V6.3M10.3 6.3h3.4"/></svg>`,
+  "Sulphites":`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M10 3.3h4M10.4 3.3v5l-4.4 7.8a2 2 0 0 0 1.7 3h8.6a2 2 0 0 0 1.7-3l-4.4-7.8v-5"/><path d="M8.3 14.8h7.4"/></svg>`,
+  "Lupin":`<svg viewBox="0 0 24 24" ${SVG_BASE}><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><path d="M12 10.5c0-2 1-3.3 2.6-3.3M12 10.5c0-2-1-3.3-2.6-3.3M13.5 12c2 0 3.3 1 3.3 2.6M10.5 12c-2 0-3.3 1-3.3 2.6M12 13.5c0 2-1 3.3-2.6 3.3M12 13.5c0 2 1 3.3 2.6 3.3"/></svg>`,
+  "Onion":`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M12 5.2c2.8 2.1 4.3 5.2 4.3 8.5A4.3 4.3 0 0 1 12 18a4.3 4.3 0 0 1-4.3-4.3c0-3.3 1.5-6.4 4.3-8.5Z"/><path d="M12 5.2V2.8"/></svg>`,
+  "Garlic":`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M12 4.2c2.4 2 3.8 4.9 3.8 8.1A3.8 3.8 0 0 1 12 16.1a3.8 3.8 0 0 1-3.8-3.8c0-3.2 1.4-6.1 3.8-8.1Z"/><path d="M12 4.2v11.9M9.9 7.4c.6.6.9 1.4.9 2.5M14.1 7.4c-.6.6-.9 1.4-.9 2.5"/><path d="M9.7 17.3h4.6"/></svg>`,
+  "Chilli":`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M9 5.3c.9 0 1.7.4 2 1.2M9.2 6.7c-2.4 1-3.9 3.8-3.9 6.6a4.7 4.7 0 0 0 4.7 4.7c3.7 0 7.5-3.8 7.5-8.5 0-1.9-.9-3.3-2.3-3.8"/></svg>`,
+  "Tomato":`<svg viewBox="0 0 24 24" ${SVG_BASE}><circle cx="12" cy="13.5" r="5.7"/><path d="M12 7.8c-.9-1.2-.9-2.1 0-3.1M12 7.8c.9-1.2.9-2.1 0-3.1M9.7 6.7c.9.3 1.6.8 2.3 1.5M14.3 6.7c-.9.3-1.6.8-2.3 1.5"/></svg>`,
+  "Legumes / pulses":`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M7.5 14.5c0-5 2-9 6-10.5"/><path d="M16.5 9c0 5-2 9-6 10.5"/><circle cx="10.3" cy="9.3" r=".9" fill="currentColor" stroke="none"/><circle cx="12" cy="13" r=".9" fill="currentColor" stroke="none"/><circle cx="13.7" cy="16.7" r=".9" fill="currentColor" stroke="none"/></svg>`,
+  "Sweeteners":`<svg viewBox="0 0 24 24" ${SVG_BASE}><circle cx="7.4" cy="15.3" r="1.9"/><circle cx="16.6" cy="15.3" r="1.9"/><circle cx="12" cy="7.4" r="1.9"/><path d="M9.1 13.7 10.4 9.3M14.9 13.7 13.6 9.3M9.3 15.3h5.4"/></svg>`
+};
+function renderAllergenGridIcons(){
+  document.querySelectorAll(".checker-trigger-grid button[data-trigger]").forEach(btn=>{
+    const icon=ALLERGEN_ICONS[btn.dataset.trigger];
+    if(!icon || btn.dataset.iconApplied) return;
+    const label=btn.textContent.trim().replace(/^\S+\s*/,"");
+    btn.innerHTML=`${icon}<span>${escapeHtml(label)}</span>`;
+    btn.dataset.iconApplied="1";
+  });
+}
 function moodIcon(feeling){
   return ICONS[({Great:"great",Fine:"fine",Meh:"meh",Poor:"poor"})[feeling]||"fine"];
 }
@@ -2356,4 +2393,5 @@ function renderAll(){
 ensureDay(); renderAll();
 renderAvatar();
 renderGreeting();
+renderAllergenGridIcons();
 if(!state.profile?.onboarded){ openOnboarding(false); }
