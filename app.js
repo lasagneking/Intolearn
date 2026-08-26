@@ -2,7 +2,7 @@
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 2;
-const APP_VERSION = "6.0";
+const APP_VERSION = "6.1";
 
 // Hand-sketched, single-stroke "field notebook" icon set — every icon uses
 // currentColor so it inherits ink/amber automatically on selected/active
@@ -1382,6 +1382,22 @@ function wireCollapseToggles(){
   });
 }
 
+function renderActiveFlagBanner(){
+  const box=document.getElementById("activeFlagBanner");
+  const body=document.getElementById("activeFlagBody");
+  if(!box || !body) return;
+  const flagged=(currentDay().supplements||[]).filter(s=>s.flag);
+  if(!flagged.length){
+    box.classList.add("hidden");
+    body.innerHTML="";
+    return;
+  }
+  box.classList.remove("hidden");
+  body.innerHTML=flagged.map(s=>
+    `<p><strong>${escapeHtml(s.name)}</strong> has been flagged for side effects that can look like a food reaction: ${escapeHtml(titleCase(s.flag.terms.join(", ")))}. Worth weighing in alongside anything you've eaten today.</p>`
+  ).join("");
+}
+
 function renderSupplements(){
   const day=currentDay();
   const items=day.supplements||[];
@@ -2050,6 +2066,26 @@ function reportMealIngredients(x){
     ...detectUKAllergens(raw),...detectFamilies(raw)
   ].filter(Boolean).map(v=>String(v).trim()))];
 }
+function buildKnownSuspects(keys){
+  const keySet=new Set(keys);
+  const stats={};
+  keys.forEach(k=>{
+    const day=state.days[k];
+    if(!day) return;
+    const reacted=dayReactionWindow(k);
+    (day.supplements||[]).forEach(s=>{
+      if(!s.flag) return;
+      const key=s.name.trim().toLowerCase();
+      stats[key] ||= {name:s.name, flag:s.flag, days:0, symptomDays:0};
+      stats[key].days++;
+      if(reacted) stats[key].symptomDays++;
+    });
+  });
+  return Object.values(stats)
+    .map(x=>({...x, rate:x.days?x.symptomDays/x.days:0}))
+    .sort((a,b)=> b.rate-a.rate || b.days-a.days);
+}
+
 function renderReport(){
   const keys=reportDateKeys(reportDays);
   let meals=0, scans=0, exits=0, symptomDays=0, comfortable=0;
@@ -2080,6 +2116,20 @@ function renderReport(){
     [ICONS.calendarDot,keys.length,"Days recorded"],[ICONS.plate,meals,"Meals recorded"],
     [ICONS.camera,scans,"Ingredient scans"],[ICONS.clipboard,exits,"Exit Interviews"]
   ].map(s=>`<div class="report-stat"><span>${s[0]}</span><strong>${s[1]}</strong><small>${s[2]}</small></div>`).join("");
+
+  const suspects=buildKnownSuspects(keys);
+  const suspectsPanel=document.getElementById("knownSuspectsPanel");
+  if(suspects.length){
+    suspectsPanel.classList.remove("hidden");
+    document.getElementById("knownSuspects").innerHTML=suspects.map(x=>`
+      <div class="connection-card">
+        <div class="connection-title"><strong>${escapeHtml(x.name)}</strong><span class="connection-score">${x.symptomDays}/${x.days} days</span></div>
+        <p>Flagged for: ${escapeHtml(titleCase(x.flag.terms.join(", ")))}. Source: ${escapeHtml(x.flag.source)}. In this period, ${x.symptomDays} of ${x.days} day${x.days===1?"":"s"} you took it were followed by symptoms that day or the next.</p>
+      </div>`).join("");
+  }else{
+    suspectsPanel.classList.add("hidden");
+    document.getElementById("knownSuspects").innerHTML="";
+  }
 
   const connections=ranked.slice(0,5);
   document.getElementById("reportConnections").innerHTML=connections.length?connections.map(x=>`
@@ -2297,7 +2347,7 @@ function renderTodayEyebrow(){
 }
 
 function renderAll(){
-  const jobs=[renderMeals,renderExit,renderWeek,renderMonth,renderTrends,renderReport,renderTodayEyebrow,renderSupplements,renderCourses,applyCollapseState];
+  const jobs=[renderMeals,renderExit,renderWeek,renderMonth,renderTrends,renderReport,renderTodayEyebrow,renderSupplements,renderCourses,applyCollapseState,renderActiveFlagBanner];
   jobs.forEach(fn=>{
     try{ fn(); }
     catch(err){ console.error(fn.name+" failed",err); }

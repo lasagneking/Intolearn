@@ -73,6 +73,15 @@ The lookup runs **after** the entry is saved and the dialog is closed — it nev
 
 Separately from that flag, supplement and medication names are also fed into the same pattern-matching engine used for food ingredients (Report → Possible connections, Trends), so if your own data shows a personal correlation the database wouldn't know about — say, your specific fish oil brand — that still surfaces on its own.
 
+### Known suspects vs. Possible connections
+
+These are two deliberately different systems, and it matters which one you're reading:
+
+- **Possible connections** (Report, Trends) finds patterns in *your* data only — it has no idea what a drug label says. It also excludes anything you have on more than ~85% of your logged days, because there's no symptom-free contrast day to compare against, so it can't tell you anything about something you take constantly.
+- **Known suspects** (Report, above Possible connections) shows every currently-flagged supplement/medication regardless of how often you take it, because a database flag is independent evidence that doesn't need a statistical contrast day to be worth acting on. A daily antibiotic that's *already* known to cause diarrhoea would be invisible to Possible connections but still shows here.
+
+The Today screen also shows a quiet "Worth keeping in mind today" notice whenever something logged for today has a side-effect flag — it only appears when relevant, so it doesn't compete with the main food-logging flow on ordinary days.
+
 ### Recurring courses
 
 When adding a new supplement or medication, "How often?" offers three options:
