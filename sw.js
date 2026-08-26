@@ -1,7 +1,7 @@
 // Intolearn service worker
 // Bump CACHE_VERSION whenever app.js/styles.css/index.html change so the
 // new files actually get picked up instead of being served stale forever.
-const CACHE_VERSION = "intolearn-v8";
+const CACHE_VERSION = "intolearn-v9";
 const APP_SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
