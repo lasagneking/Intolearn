@@ -56,6 +56,20 @@
 
         <div id="mealSections" class="meal-grid"></div>
 
+        <div class="section-title-row">
+          <div>
+            <h2>Supplements & meds</h2>
+            <p>Vitamins, supplements and prescriptions can cause GI symptoms too.</p>
+          </div>
+        </div>
+        <section class="card meal-card">
+          <div class="meal-head">
+            <div><span class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="9.8" width="17" height="7.4" rx="3.7" transform="rotate(-35 12 12)"/><path d="M12 12 8.8 15.2" stroke-width="1.6"/></svg></span><div><h3>Supplements & meds</h3><p id="supplementSummary">Nothing logged yet</p></div></div>
+            <button class="add-btn" id="addSupplementBtn" type="button">+ Add</button>
+          </div>
+          <div id="supplementList" class="entry-list"></div>
+        </section>
+
         <section class="card exit-card">
           <div class="card-head">
             <div>
@@ -303,6 +317,48 @@
     </form>
   </dialog>
 
+  <dialog id="supplementDialog">
+    <form method="dialog" class="crop-shell" onsubmit="return false">
+      <div class="dialog-head">
+        <div>
+          <div class="eyebrow" id="supplementDialogEyebrow">ADD ENTRY</div>
+          <h3 id="supplementDialogTitle">Supplement or medication</h3>
+        </div>
+        <button type="button" class="icon-button" id="closeSupplementDialog" aria-label="Close">✕</button>
+      </div>
+
+      <label>What is it?</label>
+      <input id="supplementName" placeholder="e.g. Magnesium citrate, Ibuprofen" list="supplementNameList" autocomplete="off" />
+      <datalist id="supplementNameList"></datalist>
+
+      <label>Type</label>
+      <div class="choice-row" data-choice="supplementKind">
+        <button type="button" data-value="supplement">Vitamin / supplement</button>
+        <button type="button" data-value="prescription">Prescription / OTC drug</button>
+      </div>
+
+      <label>Dose &amp; time</label>
+      <div class="photo-choice-row">
+        <input id="supplementDose" placeholder="e.g. 400mg" />
+        <input id="supplementTime" type="time" />
+      </div>
+
+      <label>Notes</label>
+      <textarea id="supplementNotes" rows="2" placeholder="Optional notes"></textarea>
+
+      <div id="supplementFlagBox" class="checker-warning hidden">
+        <strong id="supplementFlagTitle">Possible GI-related side effects</strong>
+        <p id="supplementFlagText"></p>
+      </div>
+
+      <div class="dialog-actions">
+        <button type="button" class="danger hidden" id="deleteSupplementBtn">Delete entry</button>
+        <button type="button" class="secondary" id="cancelSupplementBtn">Cancel</button>
+        <button type="button" class="primary" id="saveSupplementBtn">Save entry</button>
+      </div>
+    </form>
+  </dialog>
+
 
 
 
@@ -470,7 +526,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
-  <script src="app.js?v=50"></script>
+  <script src="app.js?v=51"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {

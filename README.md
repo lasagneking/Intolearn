@@ -1,6 +1,6 @@
 # Intolearn — by Lee Thumwood
 
-Personal-use prototype. Current build: **v5.0**.
+Personal-use prototype. Current build: **v5.1**.
 
 ## Run it
 
@@ -52,7 +52,23 @@ A service worker (`sw.js`) precaches the app shell (HTML/CSS/JS, icons), the Goo
 
 v5.0 moved off the original light green theme to a dark, editorial "field notebook" look: near-black warm charcoal background, parchment-toned text, Fraunces for headlines, Archivo for body/UI, IBM Plex Mono for labels and data. Three accent colours carry meaning rather than decoration: amber (`--trace`) for active/tracking states, teal (`--safe`) for comfortable/clear results, rust (`--flag`) for symptom/allergen flags. All colours and fonts are CSS custom properties in `styles.css` (`:root`) — change them there rather than hunting through individual rules.
 
+## Supplements & medications
+
+A separate "Supplements & meds" section on the Today screen logs vitamins, supplements, and prescription/OTC drugs alongside food — because these can cause GI symptoms indistinguishable from a food intolerance, and were previously invisible to the diary entirely.
+
+Each entry gets a **silent side-effect check**, tiered by what data actually exists:
+
+- **Vitamins/supplements**: checked against a small curated reference list of common GI-related side effects (magnesium, iron, fish oil, probiotics, high-dose vitamin C, etc.). There's no free, authoritative structured database for supplement side effects (they aren't FDA-regulated the way drugs are), so this list is a practical starting point, not a comprehensive one — treat it as a nudge to Google the specific product, not a verdict.
+- **Prescription/OTC drugs**: checked against [openFDA's public drug label API](https://open.fda.gov/apis/drug/label/) (free, no key required) by brand or generic name, scanning the label's adverse-reactions/warnings text for GI-symptom keywords (diarrhoea, nausea, bloating, cramping, etc.).
+
+The lookup runs **after** the entry is saved and the dialog is closed — it never blocks on a slow or missing network connection, and if it finds nothing (or the request fails), nothing is shown. If it does find a match, a tag appears on the entry, e.g. "Diarrhoea, Bloating" with its source.
+
+Separately from that flag, supplement and medication names are also fed into the same pattern-matching engine used for food ingredients (Report → Possible connections, Trends), so if your own data shows a personal correlation the database wouldn't know about — say, your specific fish oil brand — that still surfaces on its own.
+
+**Known limitation**: the openFDA lookup depends on that API allowing cross-origin requests directly from a browser. It's a public API intended for this kind of use and has worked in testing, but if you ever see prescription lookups silently doing nothing where you'd expect a match, that's the first thing to check (openFDA's status, or whether a lightweight proxy is needed).
+
 ## Known limitations
+
 
 - OCR quality depends on photo quality/lighting; always cross-check the original packaging for anything allergy-relevant — this is stated in-app too.
 - Open Food Facts is community-maintained; product data can be missing or incomplete.

@@ -8,7 +8,7 @@
   --font-mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
 }
 *{box-sizing:border-box}
-body{margin:0;font-family:var(--font-body);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+body{margin:0;font-family:var(--font-body);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;color-scheme:dark}
 button,input,textarea{font:inherit}
 button{cursor:pointer}
 h1,h2,h3{font-family:var(--font-display)}

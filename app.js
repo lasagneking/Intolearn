@@ -2,7 +2,7 @@
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 2;
-const APP_VERSION = "5.0";
+const APP_VERSION = "5.1";
 
 // Hand-sketched, single-stroke "field notebook" icon set — every icon uses
 // currentColor so it inherits ink/amber automatically on selected/active
@@ -15,6 +15,7 @@ const ICONS={
   dinner:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M15.8 4.6A7.4 7.4 0 1 0 19.3 17a6 6 0 0 1-3.5-12.4Z"/><path d="M19 4.3v2.4M17.8 5.5h2.4" stroke-width="1.3"/><circle cx="6" cy="18.5" r="1.1" fill="var(--trace)" stroke="none"/></svg>`,
   snacks:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M12 9c-2-2.6-5.6-2-6.6.6-1.2 3 .7 8.4 4 9.7 1 .4 1.7.4 2.6 0 .9.4 1.6.4 2.6 0 3.3-1.3 5.2-6.7 4-9.7-1-2.6-4.6-3.2-6.6-.6Z"/><path d="M12 9c0-1.6.6-2.8 1.8-3.6"/><path d="M14.2 4.4c1 0 1.9.5 2.3 1.4-1 .4-2 0-2.3-1.4Z"/><circle cx="19" cy="4" r="1.2" fill="var(--trace)" stroke="none"/></svg>`,
   door:`<svg viewBox="0 0 24 24" ${SVG_BASE}><rect x="6" y="3" width="12" height="18" rx="0.5"/><circle cx="14.3" cy="12.2" r="0.9" fill="currentColor" stroke="none"/><circle cx="19" cy="4.5" r="1.2" fill="var(--trace)" stroke="none"/></svg>`,
+  pill:`<svg viewBox="0 0 24 24" ${SVG_BASE}><rect x="3.5" y="9.8" width="17" height="7.4" rx="3.7" transform="rotate(-35 12 12)"/><path d="M12 12 8.8 15.2" stroke-width="1.6"/><circle cx="19" cy="4.5" r="1.2" fill="var(--trace)" stroke="none"/></svg>`,
   search:`<svg viewBox="0 0 24 24" ${SVG_BASE}><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5.5 5.5"/><path d="M7.8 10.5c0-1.6 1.2-2.7 2.7-2.7" stroke-width="1.3"/><circle cx="19" cy="4.5" r="1.1" fill="var(--trace)" stroke="none"/></svg>`,
   // Feeling / mood: a small "vitals monitor" waveform, escalating from a
   // falling line (poor) to a calm blip (fine) to a rising line (great) —
@@ -651,6 +652,67 @@ function termPresent(hay, term){
   return (" " + hay + " ").includes(" " + normalTerm + " ");
 }
 
+// --- Supplements & medications: GI side-effect lookups ---
+// Two tiers, since there's no single free "supplement side effects" API:
+// 1. Vitamins/supplements: a small curated reference list (not FDA-regulated,
+//    so no authoritative structured database exists for these).
+// 2. Prescription/OTC drugs: a live lookup against openFDA's public drug
+//    label API, scanning the label's adverse-reactions/warnings text for
+//    GI-symptom keywords. Runs in the background after saving so it never
+//    blocks the save on a slow or failed network request.
+const GI_KEYWORDS=["diarrhea","diarrhoea","constipation","nausea","vomiting","bloating","flatulence","abdominal pain","stomach pain","stomach upset","stomach cramp","cramping","indigestion","dyspepsia","reflux","heartburn","loose stool","gastrointestinal"];
+const SUPPLEMENT_GI_NOTES={
+  "magnesium":["diarrhoea","stomach cramps"],
+  "vitamin c":["diarrhoea","stomach upset at high doses"],
+  "fish oil":["burping","indigestion","loose stools"],
+  "omega-3":["burping","indigestion","loose stools"],
+  "probiotic":["bloating","gas (often settles after a week or two)"],
+  "creatine":["stomach cramps","bloating"],
+  "whey protein":["bloating","gas","loose stools if lactose-sensitive"],
+  "collagen":["bloating","fullness"],
+  "iron":["constipation","nausea","stomach pain"],
+  "zinc":["nausea","stomach upset"],
+  "vitamin d":["nausea","constipation at high doses"],
+  "ashwagandha":["stomach upset","diarrhoea"],
+  "berberine":["diarrhoea","stomach cramps","constipation"],
+  "inulin":["gas","bloating"],
+  "prebiotic":["gas","bloating"],
+  "psyllium":["bloating","gas"],
+  "fibre supplement":["bloating","gas"],
+  "fiber supplement":["bloating","gas"],
+  "turmeric":["diarrhoea","stomach upset at high doses"],
+  "curcumin":["diarrhoea","stomach upset at high doses"],
+  "5-htp":["nausea"],
+  "green tea extract":["stomach upset","nausea"],
+  "apple cider vinegar":["nausea","throat or stomach irritation"]
+};
+function lookupSupplementGI(name){
+  const hay=name.toLowerCase();
+  const match=Object.entries(SUPPLEMENT_GI_NOTES).find(([key])=>hay.includes(key));
+  if(!match) return null;
+  return {source:"Common supplement reference (general information, not FDA-regulated)", terms:match[1]};
+}
+async function lookupPrescriptionGI(name){
+  if(!name.trim()) return null;
+  const q=encodeURIComponent(name.trim());
+  const url=`https://api.fda.gov/drug/label.json?search=openfda.brand_name:"${q}"+openfda.generic_name:"${q}"&limit=1`;
+  try{
+    const res=await fetch(url);
+    if(!res.ok) return null;
+    const data=await res.json();
+    const r=data?.results?.[0];
+    if(!r) return null;
+    const text=[...(r.adverse_reactions||[]),...(r.warnings||[]),...(r.warnings_and_cautions||[])].join(" ").toLowerCase();
+    if(!text) return null;
+    const matched=GI_KEYWORDS.filter(term=>text.includes(term));
+    if(!matched.length) return null;
+    return {source:"FDA drug label (openFDA)", terms:[...new Set(matched)]};
+  }catch(err){
+    console.warn("openFDA lookup failed (offline, blocked, or no match)",err);
+    return null;
+  }
+}
+
 function detectUKAllergens(text){
   const hay=normaliseScanText(text);
   return ukAllergens
@@ -783,10 +845,11 @@ function saveState(){
 }
 function dateKey(d=new Date()){ return d.toISOString().slice(0,10); }
 function ensureDay(key=dateKey()){
-  if(!state.days[key]) state.days[key]={ meals:{breakfast:[],lunch:[],dinner:[],snacks:[]}, exit:{} };
+  if(!state.days[key]) state.days[key]={ meals:{breakfast:[],lunch:[],dinner:[],snacks:[]}, exit:{}, supplements:[] };
   state.days[key].meals ||= {};
   mealTypes.forEach(m => state.days[key].meals[m.key] ||= []);
   state.days[key].exit ||= {};
+  state.days[key].supplements ||= [];
   return state.days[key];
 }
 function fmtDate(d){ return d.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"}); }
@@ -1148,6 +1211,201 @@ document.getElementById("mealForm").addEventListener("submit", e=>e.preventDefau
 document.getElementById("mealDialog").addEventListener("cancel", e=>{
   e.preventDefault();
   closeMealDialog();
+});
+
+// --- Supplements & medications dialog ---
+let supplementEditingIndex=null;
+let supplementEditingDateKey=null;
+
+function makeId(){
+  return (crypto?.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+}
+
+function buildSupplementHistory(){
+  const map=new Map();
+  Object.values(state.days||{}).forEach(day=>{
+    (day.supplements||[]).forEach(item=>{
+      const name=(item.name||"").trim();
+      if(!name) return;
+      map.set(name.toLowerCase(), name);
+    });
+  });
+  return map;
+}
+function populateSupplementNameDatalist(){
+  const list=document.getElementById("supplementNameList");
+  if(!list) return;
+  list.innerHTML=[...buildSupplementHistory().values()]
+    .map(name=>`<option value="${escapeHtml(name)}"></option>`).join("");
+}
+
+function resetSupplementForm(){
+  document.getElementById("supplementName").value="";
+  document.getElementById("supplementName").classList.remove("field-error");
+  document.getElementById("supplementDose").value="";
+  document.getElementById("supplementTime").value=new Date().toTimeString().slice(0,5);
+  document.getElementById("supplementNotes").value="";
+  document.querySelectorAll('[data-choice="supplementKind"] button').forEach(b=>b.classList.remove("selected"));
+  document.querySelector('[data-choice="supplementKind"] button[data-value="supplement"]').classList.add("selected");
+  document.getElementById("supplementFlagBox").classList.add("hidden");
+}
+
+function openSupplement(index=null, entryDateKey=null){
+  supplementEditingIndex=index;
+  supplementEditingDateKey=entryDateKey || dateKey();
+  resetSupplementForm();
+  populateSupplementNameDatalist();
+
+  document.getElementById("supplementDialogEyebrow").textContent=index===null ? "ADD ENTRY" : "EDIT ENTRY";
+  document.getElementById("supplementDialogTitle").textContent=index===null ? "Supplement or medication" : "Edit entry";
+  document.getElementById("saveSupplementBtn").textContent=index===null ? "Save entry" : "Save changes";
+  document.getElementById("deleteSupplementBtn").classList.toggle("hidden", index===null);
+
+  if(index!==null){
+    const item=getDay(supplementEditingDateKey).supplements[index];
+    if(!item) return;
+    document.getElementById("supplementName").value=item.name||"";
+    document.getElementById("supplementDose").value=item.dose||"";
+    document.getElementById("supplementTime").value=item.time||"";
+    document.getElementById("supplementNotes").value=item.notes||"";
+    document.querySelectorAll('[data-choice="supplementKind"] button').forEach(b=>b.classList.toggle("selected", b.dataset.value===(item.kind||"supplement")));
+    if(item.flag) showSupplementFlag(item.flag);
+  }
+  document.getElementById("supplementDialog").showModal();
+}
+
+function closeSupplementDialog(){
+  const dialog=document.getElementById("supplementDialog");
+  if(!dialog) return;
+  try{ if(dialog.open) dialog.close(); }catch(err){ console.warn("Dialog close failed",err); }
+  if(dialog.hasAttribute("open")) dialog.removeAttribute("open");
+}
+
+function showSupplementFlag(flag){
+  const box=document.getElementById("supplementFlagBox");
+  document.getElementById("supplementFlagText").textContent=
+    `${titleCase(flag.terms.join(", "))}. Source: ${flag.source}. This is general reference information, not a warning specific to you — always check the patient leaflet or ask a pharmacist.`;
+  box.classList.remove("hidden");
+}
+
+function renderSupplements(){
+  const day=currentDay();
+  const items=day.supplements||[];
+  document.getElementById("supplementSummary").textContent=
+    items.length ? `${items.length} entr${items.length===1?"y":"ies"}` : "Nothing logged yet";
+
+  document.getElementById("supplementList").innerHTML=items.map((it,i)=>`
+    <div class="food-entry">
+      <div class="food-entry-main">
+        <strong>${escapeHtml(it.name)}</strong>
+        <small>${[it.kind==="prescription"?"Prescription/OTC":"Supplement", it.dose, it.time].filter(Boolean).join(" · ")}</small>
+        ${it.flag ? `<div class="ingredient-tags"><span class="allergen-tag">${escapeHtml(titleCase(it.flag.terms.join(", ")))}</span></div>` : ""}
+      </div>
+      <div class="entry-actions">
+        <button type="button" class="entry-action edit-supplement" data-index="${i}">View / Edit</button>
+        <button type="button" class="entry-action delete delete-supplement" data-index="${i}">Delete</button>
+      </div>
+    </div>
+  `).join("");
+
+  document.querySelectorAll(".edit-supplement").forEach(btn=>{
+    btn.addEventListener("click", ()=>openSupplement(Number(btn.dataset.index), dateKey()));
+  });
+  document.querySelectorAll(".delete-supplement").forEach(btn=>{
+    btn.addEventListener("click", ()=>deleteSupplement(Number(btn.dataset.index), dateKey()));
+  });
+}
+
+function attachSupplementFlag(dateKeyForEntry, id, flag){
+  const day=getDay(dateKeyForEntry);
+  const entry=(day.supplements||[]).find(x=>x.id===id);
+  if(!entry) return;
+  entry.flag=flag;
+  saveState();
+  if(dateKeyForEntry===dateKey()) renderSupplements();
+}
+
+function saveSupplement(){
+  const nameEl=document.getElementById("supplementName");
+  const name=nameEl.value.trim();
+  if(!name){
+    nameEl.classList.add("field-error");
+    nameEl.focus();
+    showToast("Please enter a supplement or medication name.");
+    return;
+  }
+  nameEl.classList.remove("field-error");
+
+  const kind=document.querySelector('[data-choice="supplementKind"] button.selected')?.dataset.value || "supplement";
+  const isNew=supplementEditingIndex===null;
+  const targetDay=getDay(supplementEditingDateKey);
+  const previous=isNew ? undefined : targetDay.supplements[supplementEditingIndex];
+
+  const entry={
+    id: previous?.id || makeId(),
+    name,
+    kind,
+    dose:document.getElementById("supplementDose").value.trim(),
+    time:document.getElementById("supplementTime").value,
+    notes:document.getElementById("supplementNotes").value.trim(),
+    flag: kind==="supplement" ? lookupSupplementGI(name) : (previous?.flag||null),
+    createdAt: previous?.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  if(isNew){
+    targetDay.supplements.push(entry);
+  }else{
+    targetDay.supplements[supplementEditingIndex]=entry;
+  }
+
+  const saved=saveState();
+  if(!saved){
+    if(isNew){ targetDay.supplements.pop(); }
+    else{ targetDay.supplements[supplementEditingIndex]=previous; }
+    return;
+  }
+
+  closeSupplementDialog();
+  renderAll();
+  showToast(isNew ? "Entry saved" : "Changes saved");
+
+  // Prescription/OTC lookups hit the network, so they run silently in the
+  // background after the save/close — never blocking the dialog on a slow
+  // or failed request.
+  if(kind==="prescription"){
+    lookupPrescriptionGI(name).then(flag=>{
+      if(flag) attachSupplementFlag(supplementEditingDateKey, entry.id, flag);
+    });
+  }
+}
+
+function deleteSupplement(index, entryDateKey){
+  const targetDay=getDay(entryDateKey);
+  const item=targetDay.supplements?.[index];
+  if(!item) return;
+  if(!confirm(`Delete "${item.name}"?`)) return;
+  targetDay.supplements.splice(index,1);
+  saveState();
+  renderAll();
+  if(document.getElementById("supplementDialog").open) closeSupplementDialog();
+  showToast("Entry deleted");
+}
+
+document.getElementById("addSupplementBtn").addEventListener("click", ()=>openSupplement(null, dateKey()));
+document.getElementById("saveSupplementBtn").addEventListener("click", saveSupplement);
+document.getElementById("cancelSupplementBtn").addEventListener("click", closeSupplementDialog);
+document.getElementById("closeSupplementDialog").addEventListener("click", closeSupplementDialog);
+document.getElementById("deleteSupplementBtn").addEventListener("click", ()=>deleteSupplement(supplementEditingIndex, supplementEditingDateKey));
+document.querySelectorAll('[data-choice="supplementKind"] button').forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll('[data-choice="supplementKind"] button').forEach(b=>b.classList.remove("selected"));
+    btn.classList.add("selected");
+  });
+});
+document.getElementById("supplementDialog").addEventListener("cancel", e=>{
+  e.preventDefault();
+  closeSupplementDialog();
 });
 
 function handleIngredientPhoto(file, destination="meal"){
@@ -1624,6 +1882,7 @@ function renderReport(){
   const {statsRaw, ranked, baseline, consideredDays}=buildAssociationStats(keys, day=>{
     const tags=new Set();
     mealTypes.forEach(m=>(day.meals?.[m.key]||[]).forEach(x=>reportMealIngredients(x).forEach(t=>tags.add(t))));
+    (day.supplements||[]).forEach(s=>{ if(s.name) tags.add(s.name.trim().toLowerCase()); });
     return tags;
   });
 
@@ -1675,6 +1934,7 @@ function renderTrends(){
   const {ranked, baseline, consideredDays}=buildAssociationStats(allKeys, day=>{
     const ingredients=new Set();
     mealTypes.forEach(m=>(day.meals?.[m.key]||[]).forEach(x=>(x.ingredients||[]).forEach(i=>ingredients.add(i.toLowerCase()))));
+    (day.supplements||[]).forEach(s=>{ if(s.name) ingredients.add(s.name.trim().toLowerCase()); });
     return ingredients;
   });
   const trends=ranked.slice(0,6);
@@ -1720,7 +1980,7 @@ function renderTodayEyebrow(){
 }
 
 function renderAll(){
-  const jobs=[renderMeals,renderExit,renderWeek,renderMonth,renderTrends,renderReport,renderTodayEyebrow];
+  const jobs=[renderMeals,renderExit,renderWeek,renderMonth,renderTrends,renderReport,renderTodayEyebrow,renderSupplements];
   jobs.forEach(fn=>{
     try{ fn(); }
     catch(err){ console.error(fn.name+" failed",err); }
