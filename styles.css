@@ -19,10 +19,10 @@ h1,h2,h3{font-family:var(--font-display)}
 .brand{font-family:var(--font-wordmark);font-weight:400;font-size:34px;letter-spacing:.01em}
 .byline{font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:2px}
 .icon-button{border:1px solid var(--line);background:var(--surface);color:var(--ink);width:42px;height:42px;border-radius:0;font-size:20px;display:grid;place-items:center}
-.avatar-button{border-radius:50%;overflow:hidden;border-color:transparent;background:var(--trace);color:#161310;font-family:var(--font-display);font-weight:600;font-size:17px}
+.avatar-button{width:58px;height:58px;border:none;border-radius:50%;overflow:hidden;background:var(--trace);color:#161310;font-family:var(--font-display);font-weight:600;font-size:22px}
 .avatar-button img{width:100%;height:100%;object-fit:cover;display:block}
 .profile-summary{display:flex;align-items:center;gap:12px;padding:4px 0 16px}
-.profile-avatar{width:48px;height:48px;border:1px solid transparent;border-radius:50%;background:var(--trace);color:#161310;flex-shrink:0;overflow:hidden;display:grid;place-items:center;font-family:var(--font-display);font-weight:600;font-size:19px}
+.profile-avatar{width:52px;height:52px;border:none;border-radius:50%;background:var(--trace);color:#161310;flex-shrink:0;overflow:hidden;display:grid;place-items:center;font-family:var(--font-display);font-weight:600;font-size:21px}
 .profile-avatar img{width:100%;height:100%;object-fit:cover;display:block}
 .profile-summary strong{display:block;font-weight:600}
 .profile-summary small{display:block;color:var(--muted);font-family:var(--font-mono);font-size:11px;margin-top:2px}
