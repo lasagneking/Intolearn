@@ -2,7 +2,7 @@
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 2;
-const APP_VERSION = "5.8";
+const APP_VERSION = "5.9";
 
 // Hand-sketched, single-stroke "field notebook" icon set — every icon uses
 // currentColor so it inherits ink/amber automatically on selected/active
@@ -1893,9 +1893,17 @@ function getMealSearchText(x,day){
 function renderMonthResults(){
   const filter=document.getElementById("monthFilter");
   const resultsBox=document.getElementById("monthResults");
+  const card=document.getElementById("monthResultsCard");
   if(!filter || !resultsBox) return;
 
   const q=filter.value.trim().toLowerCase();
+  if(!q){
+    if(card) card.classList.add("hidden");
+    resultsBox.innerHTML="";
+    return;
+  }
+  if(card) card.classList.remove("hidden");
+
   const aliases={
     "dairy":["milk","milk dairy"],
     "gluten":["cereals containing gluten","wheat"],
@@ -1917,7 +1925,7 @@ function renderMonthResults(){
           const entries=day?.meals?.[m.key]||[];
           entries.forEach((x,index)=>{
             const hay=getMealSearchText(x,day);
-            const matches=!q || terms.some(term=>hay.includes(term));
+            const matches=terms.some(term=>hay.includes(term));
             if(matches) results.push({k,m:m.key,x,index});
           });
         });
