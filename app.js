@@ -3,11 +3,44 @@ const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 2;
 const APP_VERSION = "5.0";
+
+// Hand-sketched, single-stroke "field notebook" icon set — every icon uses
+// currentColor so it inherits ink/amber automatically on selected/active
+// states. Icons sitting in a fixed-background tile also carry a small amber
+// dot, like a specimen tag, as the set's one recurring flourish.
+const SVG_BASE='fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"';
+const ICONS={
+  breakfast:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M3.5 17.5h17"/><path d="M7.5 17.5a4.5 4.5 0 0 1 9 0"/><path d="M12 12.5V8.5M8.3 10.2 7 9M15.7 10.2 17 9"/><circle cx="18.5" cy="5.3" r="1.3" fill="var(--trace)" stroke="none"/></svg>`,
+  lunch:`<svg viewBox="0 0 24 24" ${SVG_BASE}><circle cx="11.5" cy="12.5" r="4"/><path d="M11.5 5v-1M11.5 20v-1M4.5 12.5h-1M19.5 12.5h-1M6.7 7.7l-.7-.7M17 17.9l-.7-.7M16.3 7.7l.7-.7M6 17.9l.7-.7"/><circle cx="19" cy="5" r="1.3" fill="var(--trace)" stroke="none"/></svg>`,
+  dinner:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M15.8 4.6A7.4 7.4 0 1 0 19.3 17a6 6 0 0 1-3.5-12.4Z"/><path d="M19 4.3v2.4M17.8 5.5h2.4" stroke-width="1.3"/><circle cx="6" cy="18.5" r="1.1" fill="var(--trace)" stroke="none"/></svg>`,
+  snacks:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M12 9c-2-2.6-5.6-2-6.6.6-1.2 3 .7 8.4 4 9.7 1 .4 1.7.4 2.6 0 .9.4 1.6.4 2.6 0 3.3-1.3 5.2-6.7 4-9.7-1-2.6-4.6-3.2-6.6-.6Z"/><path d="M12 9c0-1.6.6-2.8 1.8-3.6"/><path d="M14.2 4.4c1 0 1.9.5 2.3 1.4-1 .4-2 0-2.3-1.4Z"/><circle cx="19" cy="4" r="1.2" fill="var(--trace)" stroke="none"/></svg>`,
+  door:`<svg viewBox="0 0 24 24" ${SVG_BASE}><rect x="6" y="3" width="12" height="18" rx="0.5"/><circle cx="14.3" cy="12.2" r="0.9" fill="currentColor" stroke="none"/><circle cx="19" cy="4.5" r="1.2" fill="var(--trace)" stroke="none"/></svg>`,
+  search:`<svg viewBox="0 0 24 24" ${SVG_BASE}><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5.5 5.5"/><path d="M7.8 10.5c0-1.6 1.2-2.7 2.7-2.7" stroke-width="1.3"/><circle cx="19" cy="4.5" r="1.1" fill="var(--trace)" stroke="none"/></svg>`,
+  // Feeling / mood: a small "vitals monitor" waveform, escalating from a
+  // falling line (poor) to a calm blip (fine) to a rising line (great) —
+  // fits a symptom diary better than generic faces.
+  great:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M4 16 9.5 9l3.5 4 7-8"/><path d="M16.5 5h3.5v3.5"/></svg>`,
+  fine:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M4 12h4l2-3 3 6 2-3h5"/></svg>`,
+  meh:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M3.5 13c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/></svg>`,
+  poor:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M4 8 9.5 15l3.5-4 7 8"/><path d="M16.5 19h3.5v-3.5"/></svg>`,
+  checkClear:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M4.5 12.5 9 17l10.5-11"/></svg>`,
+  checkAlert:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M12 4 21 19H3Z"/><path d="M12 10v3.4"/><circle cx="12" cy="16.2" r="0.35" fill="currentColor" stroke="currentColor" stroke-width="1.6"/></svg>`,
+  noData:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M5 12h14" stroke-dasharray="2.2 3.4" opacity="0.55"/></svg>`,
+  calendarDot:`<svg viewBox="0 0 24 24" ${SVG_BASE}><rect x="3.5" y="5" width="17" height="15" rx="0.5"/><path d="M3.5 9.5h17M8 3v3.5M16 3v3.5"/><circle cx="12" cy="14.5" r="1.3" fill="currentColor" stroke="none"/></svg>`,
+  plate:`<svg viewBox="0 0 24 24" ${SVG_BASE}><circle cx="11" cy="12" r="7.5"/><circle cx="11" cy="12" r="3.6"/><path d="M18.5 6v12"/></svg>`,
+  camera:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M4 8.5h3l1.4-2h5.2l1.4 2H20V19H4Z"/><circle cx="12" cy="13.2" r="3.3"/></svg>`,
+  clipboard:`<svg viewBox="0 0 24 24" ${SVG_BASE}><rect x="5.5" y="4.5" width="13" height="16" rx="0.5"/><rect x="9" y="3" width="6" height="3" rx="0.5"/><path d="M8.5 11h7M8.5 14.5h7M8.5 18h4.5"/></svg>`,
+  tally:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M5 6.5h11M5 12h14M5 17.5h8"/></svg>`
+};
+function moodIcon(feeling){
+  return ICONS[({Great:"great",Fine:"fine",Meh:"meh",Poor:"poor"})[feeling]||"fine"];
+}
+
 const mealTypes = [
-  {key:"breakfast", label:"Breakfast", icon:"☀️"},
-  {key:"lunch", label:"Lunch", icon:"🌤️"},
-  {key:"dinner", label:"Dinner", icon:"🌙"},
-  {key:"snacks", label:"Snacks & Drinks", icon:"🍎"}
+  {key:"breakfast", label:"Breakfast", icon:ICONS.breakfast},
+  {key:"lunch", label:"Lunch", icon:ICONS.lunch},
+  {key:"dinner", label:"Dinner", icon:ICONS.dinner},
+  {key:"snacks", label:"Snacks & Drinks", icon:ICONS.snacks}
 ];
 
 
@@ -116,13 +149,13 @@ async function scanCheckerImage(file){
 
     if(matches.length){
       resultBox.className="checker-result match";
-      icon.textContent="!";
+      icon.innerHTML=ICONS.checkAlert;
       title.textContent="Selected ingredient detected";
       text.textContent="Intolearn found one or more of the ingredients you selected in the scanned text.";
       tags.innerHTML=matches.map(x=>`<span class="checker-match-tag">${escapeHtml(x)}</span>`).join("");
     }else{
       resultBox.className="checker-result clear";
-      icon.textContent="✓";
+      icon.innerHTML=ICONS.checkClear;
       title.textContent="No selected trigger detected";
       text.textContent="Intolearn did not find your selected ingredients in the text it managed to read. This is not a safety guarantee.";
       tags.innerHTML="";
@@ -586,13 +619,13 @@ function applyBarcodeProductToChecker(product){
     ? `<img src="${escapeHtml(product.image)}" alt="${escapeHtml(product.name||"Product")}">` : "";
   if(matches.length){
     resultBox.className="checker-result match";
-    icon.textContent="!";
+    icon.innerHTML=ICONS.checkAlert;
     title.textContent="Selected trigger detected";
     text.textContent=`One or more selected triggers were found. Source: ${product.allergenSource||"available product data"}.`;
     tags.innerHTML=matches.map(x=>`<span class="checker-match-tag">${escapeHtml(x)}</span>`).join("");
   }else{
     resultBox.className="checker-result clear";
-    icon.textContent="✓";
+    icon.innerHTML=ICONS.checkClear;
     title.textContent="No selected trigger listed";
     text.textContent=product.allergenConfidence==="missing"
       ? "Open Food Facts does not currently provide enough allergen or ingredient information for a reliable check. Use the ingredient-photo fallback and verify the packaging."
@@ -741,9 +774,9 @@ function saveState(){
   }catch(err){
     console.error("saveState failed",err);
     if(isQuotaError(err)){
-      showToast("⚠️ Storage is full — this entry was NOT saved. Free up space in Settings.");
+      showToast("Storage full — this entry was NOT saved. Free up space in Settings.");
     }else{
-      showToast("⚠️ Could not save — please try again.");
+      showToast("Not saved — please try again.");
     }
     return false;
   }
@@ -1371,7 +1404,7 @@ function renderExit(){
   const ex=currentDay().exit||{};
   const complete=Object.keys(ex).length>0;
   document.getElementById("exitStatus").textContent=complete?"Saved":"Not completed";
-  document.getElementById("summaryMood").textContent=({Great:"😄",Fine:"🙂",Meh:"😐",Poor:"😣"})[ex.feeling]||"🙂";
+  document.getElementById("summaryMood").innerHTML=moodIcon(ex.feeling);
 }
 function lastNDays(n){
   const arr=[]; const d=new Date();
@@ -1382,7 +1415,7 @@ function renderWeek(){
   const days=lastNDays(7);
   document.getElementById("weekStrip").innerHTML=days.map(d=>{
     const k=dateKey(d), ex=state.days[k]?.exit||{};
-    const face=({Great:"😄",Fine:"🙂",Meh:"😐",Poor:"😣"})[ex.feeling]||"·";
+    const face=ex.feeling ? moodIcon(ex.feeling) : ICONS.noData;
     return `<div class="day-pill"><div class="day">${d.toLocaleDateString("en-GB",{weekday:"short"})}</div><div class="num">${d.getDate()}</div><div class="face">${face}</div></div>`;
   }).join("");
   let meals=0,symptoms=0,logged=0;
@@ -1599,8 +1632,8 @@ function renderReport(){
     `${start.toLocaleDateString("en-GB",{day:"numeric",month:"short"})} – ${new Date().toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}`;
 
   document.getElementById("reportSummary").innerHTML=[
-    ["📅",keys.length,"Days recorded"],["🍽️",meals,"Meals recorded"],
-    ["📷",scans,"Ingredient scans"],["📋",exits,"Exit Interviews"]
+    [ICONS.calendarDot,keys.length,"Days recorded"],[ICONS.plate,meals,"Meals recorded"],
+    [ICONS.camera,scans,"Ingredient scans"],[ICONS.clipboard,exits,"Exit Interviews"]
   ].map(s=>`<div class="report-stat"><span>${s[0]}</span><strong>${s[1]}</strong><small>${s[2]}</small></div>`).join("");
 
   const connections=ranked.slice(0,5);
