@@ -2,7 +2,7 @@
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 2;
-const APP_VERSION = "5.7";
+const APP_VERSION = "5.8";
 
 // Hand-sketched, single-stroke "field notebook" icon set — every icon uses
 // currentColor so it inherits ink/amber automatically on selected/active
@@ -818,12 +818,13 @@ let cropper = null;
 let pendingPhotoFile = null;
 let cropDestination = "meal";
 
-function blankState(){ return { days:{}, profile:{name:"", photo:"", allergies:[], onboarded:false} }; }
+function blankState(){ return { days:{}, profile:{name:"", photo:"", allergies:[], onboarded:false}, courses:[] }; }
 function loadState(){
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY)) || blankState();
     parsed.days ||= {};
     parsed.profile ||= {name:"", photo:"", allergies:[], onboarded:false};
+    parsed.courses ||= [];
     return parsed;
   }
   catch { return blankState(); }
@@ -850,12 +851,53 @@ function saveState(){
   }
 }
 function dateKey(d=new Date()){ return d.toISOString().slice(0,10); }
+function dateKeyPlusDays(key,n){
+  const d=new Date(key+"T12:00:00");
+  d.setDate(d.getDate()+n);
+  return dateKey(d);
+}
+function courseEndKey(course){
+  if(course.durationDays==null) return null;
+  return dateKeyPlusDays(course.startDate, course.durationDays-1);
+}
+function isCourseActiveOn(course,key){
+  if(course.active===false) return false;
+  if(key < course.startDate) return false;
+  const end=courseEndKey(course);
+  if(end && key > end) return false;
+  return true;
+}
+// Fills a day's supplement list from any recurring course that covers that
+// date, unless the user explicitly skipped that course for that specific
+// day. Only runs the (cheap) idempotency checks unless something actually
+// needs adding, so this is safe to call on every ensureDay().
+function applyCoursesToDay(key){
+  const day=state.days[key];
+  if(!day) return;
+  day.courseSkips ||= [];
+  let changed=false;
+  (state.courses||[]).forEach(course=>{
+    if(!isCourseActiveOn(course,key)) return;
+    if(day.courseSkips.includes(course.id)) return;
+    if(day.supplements.some(s=>s.courseId===course.id)) return;
+    day.supplements.push({
+      id:makeId(), courseId:course.id, name:course.name, kind:course.kind,
+      dose:course.dose, time:course.time, notes:course.notes, flag:course.flag,
+      createdAt:new Date().toISOString(), updatedAt:new Date().toISOString()
+    });
+    changed=true;
+  });
+  if(changed) saveState();
+}
+
 function ensureDay(key=dateKey()){
-  if(!state.days[key]) state.days[key]={ meals:{breakfast:[],lunch:[],dinner:[],snacks:[]}, exit:{}, supplements:[] };
+  if(!state.days[key]) state.days[key]={ meals:{breakfast:[],lunch:[],dinner:[],snacks:[]}, exit:{}, supplements:[], courseSkips:[] };
   state.days[key].meals ||= {};
   mealTypes.forEach(m => state.days[key].meals[m.key] ||= []);
   state.days[key].exit ||= {};
   state.days[key].supplements ||= [];
+  state.days[key].courseSkips ||= [];
+  applyCoursesToDay(key);
   return state.days[key];
 }
 function fmtDate(d){ return d.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"}); }
@@ -1253,6 +1295,11 @@ function resetSupplementForm(){
   document.getElementById("supplementNotes").value="";
   document.querySelectorAll('[data-choice="supplementKind"] button').forEach(b=>b.classList.remove("selected"));
   document.querySelector('[data-choice="supplementKind"] button[data-value="supplement"]').classList.add("selected");
+  document.querySelectorAll('[data-choice="supplementFrequency"] button').forEach(b=>b.classList.remove("selected"));
+  document.querySelector('[data-choice="supplementFrequency"] button[data-value="once"]').classList.add("selected");
+  document.getElementById("supplementCourseDays").value="";
+  document.getElementById("supplementCourseDays").classList.remove("field-error");
+  document.getElementById("supplementCourseDaysWrap").classList.add("hidden");
   document.getElementById("supplementFlagBox").classList.add("hidden");
 }
 
@@ -1266,6 +1313,9 @@ function openSupplement(index=null, entryDateKey=null){
   document.getElementById("supplementDialogTitle").textContent=index===null ? "Supplement or medication" : "Edit entry";
   document.getElementById("saveSupplementBtn").textContent=index===null ? "Save entry" : "Save changes";
   document.getElementById("deleteSupplementBtn").classList.toggle("hidden", index===null);
+  // Recurrence only makes sense when creating a new entry — editing one
+  // day's occurrence shouldn't spin up a second course.
+  document.getElementById("supplementFrequencyBlock").classList.toggle("hidden", index!==null);
 
   if(index!==null){
     const item=getDay(supplementEditingDateKey).supplements[index];
@@ -1304,7 +1354,7 @@ function renderSupplements(){
     <div class="food-entry">
       <div class="food-entry-main">
         <strong>${escapeHtml(it.name)}</strong>
-        <small>${[it.kind==="prescription"?"Prescription/OTC":"Supplement", it.dose, it.time].filter(Boolean).join(" · ")}</small>
+        <small>${[it.kind==="prescription"?"Prescription/OTC":"Supplement", it.dose, it.time, it.courseId?"auto-logged":null].filter(Boolean).join(" · ")}</small>
         ${it.flag ? `<div class="ingredient-tags"><span class="side-effect-flag">${escapeHtml(titleCase(it.flag.terms.join(", ")))}</span></div>` : ""}
       </div>
       <div class="entry-actions">
@@ -1322,11 +1372,48 @@ function renderSupplements(){
   });
 }
 
+function renderCourses(){
+  const box=document.getElementById("courseList");
+  if(!box) return;
+  const today=dateKey();
+  const active=(state.courses||[]).filter(c=>isCourseActiveOn(c,today));
+
+  box.innerHTML=active.map(c=>{
+    const badge = c.durationDays==null
+      ? "Daily"
+      : `Day ${Math.min(c.durationDays, Math.round((new Date(today)-new Date(c.startDate))/86400000)+1)} of ${c.durationDays}`;
+    return `
+    <div class="course-row">
+      <div class="course-row-main">
+        <strong>${escapeHtml(c.name)}</strong>
+        <span class="course-badge">${badge} · logged automatically</span>
+      </div>
+      <button type="button" class="course-stop-btn stop-course" data-id="${c.id}">Stop</button>
+    </div>`;
+  }).join("");
+
+  box.querySelectorAll(".stop-course").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const course=(state.courses||[]).find(c=>c.id===btn.dataset.id);
+      if(!course) return;
+      if(!confirm(`Stop "${course.name}"? Past logged entries are kept — this only stops future auto-logging.`)) return;
+      course.active=false;
+      saveState();
+      renderCourses();
+      showToast("Course stopped");
+    });
+  });
+}
+
 function attachSupplementFlag(dateKeyForEntry, id, flag){
   const day=getDay(dateKeyForEntry);
   const entry=(day.supplements||[]).find(x=>x.id===id);
   if(!entry) return;
   entry.flag=flag;
+  if(entry.courseId){
+    const course=(state.courses||[]).find(c=>c.id===entry.courseId);
+    if(course) course.flag=flag;
+  }
   saveState();
   if(dateKeyForEntry===dateKey()) renderSupplements();
 }
@@ -1344,17 +1431,40 @@ function saveSupplement(){
 
   const kind=document.querySelector('[data-choice="supplementKind"] button.selected')?.dataset.value || "supplement";
   const isNew=supplementEditingIndex===null;
+  const frequency=isNew ? (document.querySelector('[data-choice="supplementFrequency"] button.selected')?.dataset.value || "once") : "once";
   const targetDay=getDay(supplementEditingDateKey);
   const previous=isNew ? undefined : targetDay.supplements[supplementEditingIndex];
 
+  let courseDays=null;
+  if(frequency==="course"){
+    courseDays=parseInt(document.getElementById("supplementCourseDays").value, 10);
+    if(!courseDays || courseDays<1){
+      document.getElementById("supplementCourseDays").classList.add("field-error");
+      showToast("Please enter how many days this course runs for.");
+      return;
+    }
+  }
+
+  const flag = kind==="supplement" ? lookupSupplementGI(name) : (previous?.flag||null);
+  const dose=document.getElementById("supplementDose").value.trim();
+  const time=document.getElementById("supplementTime").value;
+  const notes=document.getElementById("supplementNotes").value.trim();
+
+  let course=null;
+  if(isNew && frequency!=="once"){
+    course={
+      id: makeId(), name, kind, dose, time, notes, flag,
+      startDate: supplementEditingDateKey,
+      durationDays: frequency==="course" ? courseDays : null,
+      active: true,
+      createdAt: new Date().toISOString()
+    };
+  }
+
   const entry={
     id: previous?.id || makeId(),
-    name,
-    kind,
-    dose:document.getElementById("supplementDose").value.trim(),
-    time:document.getElementById("supplementTime").value,
-    notes:document.getElementById("supplementNotes").value.trim(),
-    flag: kind==="supplement" ? lookupSupplementGI(name) : (previous?.flag||null),
+    courseId: previous?.courseId || course?.id || null,
+    name, kind, dose, time, notes, flag,
     createdAt: previous?.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
@@ -1364,17 +1474,21 @@ function saveSupplement(){
   }else{
     targetDay.supplements[supplementEditingIndex]=entry;
   }
+  if(course) state.courses.push(course);
 
   const saved=saveState();
   if(!saved){
     if(isNew){ targetDay.supplements.pop(); }
     else{ targetDay.supplements[supplementEditingIndex]=previous; }
+    if(course) state.courses.pop();
     return;
   }
 
   closeSupplementDialog();
   renderAll();
-  showToast(isNew ? "Entry saved" : "Changes saved");
+  showToast(course
+    ? `Entry saved — ${course.durationDays ? course.durationDays+"-day course" : "daily"} logging started`
+    : (isNew ? "Entry saved" : "Changes saved"));
 
   // Prescription/OTC lookups hit the network, so they run silently in the
   // background after the save/close — never blocking the dialog on a slow
@@ -1390,12 +1504,18 @@ function deleteSupplement(index, entryDateKey){
   const targetDay=getDay(entryDateKey);
   const item=targetDay.supplements?.[index];
   if(!item) return;
-  if(!confirm(`Delete "${item.name}"?`)) return;
+  const isRecurring=!!item.courseId;
+  const label=isRecurring ? `Remove "${item.name}" for today only? (The course keeps running.)` : `Delete "${item.name}"?`;
+  if(!confirm(label)) return;
   targetDay.supplements.splice(index,1);
+  if(isRecurring){
+    targetDay.courseSkips ||= [];
+    if(!targetDay.courseSkips.includes(item.courseId)) targetDay.courseSkips.push(item.courseId);
+  }
   saveState();
   renderAll();
   if(document.getElementById("supplementDialog").open) closeSupplementDialog();
-  showToast("Entry deleted");
+  showToast(isRecurring ? "Removed for today" : "Entry deleted");
 }
 
 document.getElementById("addSupplementBtn").addEventListener("click", ()=>openSupplement(null, dateKey()));
@@ -1403,6 +1523,13 @@ document.getElementById("saveSupplementBtn").addEventListener("click", saveSuppl
 document.getElementById("cancelSupplementBtn").addEventListener("click", closeSupplementDialog);
 document.getElementById("closeSupplementDialog").addEventListener("click", closeSupplementDialog);
 document.getElementById("deleteSupplementBtn").addEventListener("click", ()=>deleteSupplement(supplementEditingIndex, supplementEditingDateKey));
+document.querySelectorAll('[data-choice="supplementFrequency"] button').forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll('[data-choice="supplementFrequency"] button').forEach(b=>b.classList.remove("selected"));
+    btn.classList.add("selected");
+    document.getElementById("supplementCourseDaysWrap").classList.toggle("hidden", btn.dataset.value!=="course");
+  });
+});
 document.querySelectorAll('[data-choice="supplementKind"] button').forEach(btn=>{
   btn.addEventListener("click", ()=>{
     document.querySelectorAll('[data-choice="supplementKind"] button').forEach(b=>b.classList.remove("selected"));
@@ -2124,7 +2251,7 @@ function renderTodayEyebrow(){
 }
 
 function renderAll(){
-  const jobs=[renderMeals,renderExit,renderWeek,renderMonth,renderTrends,renderReport,renderTodayEyebrow,renderSupplements];
+  const jobs=[renderMeals,renderExit,renderWeek,renderMonth,renderTrends,renderReport,renderTodayEyebrow,renderSupplements,renderCourses];
   jobs.forEach(fn=>{
     try{ fn(); }
     catch(err){ console.error(fn.name+" failed",err); }

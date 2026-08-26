@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,500;1,9..144,600&family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Petit+Formal+Script&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css" />
-  <link rel="stylesheet" href="styles.css?v=57" />
+  <link rel="stylesheet" href="styles.css?v=58" />
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Intolearn">
@@ -67,6 +67,7 @@
             <div><span class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="9.8" width="17" height="7.4" rx="3.7" transform="rotate(-35 12 12)"/><path d="M12 12 8.8 15.2" stroke-width="1.6"/></svg></span><div><h3>Supplements & meds</h3><p id="supplementSummary">Nothing logged yet</p></div></div>
             <button class="add-btn" id="addSupplementBtn" type="button">+ Add</button>
           </div>
+          <div id="courseList"></div>
           <div id="supplementList" class="entry-list"></div>
         </section>
 
@@ -337,6 +338,19 @@
         <button type="button" data-value="prescription">Prescription / OTC drug</button>
       </div>
 
+      <div id="supplementFrequencyBlock">
+        <label>How often?</label>
+        <div class="choice-row" data-choice="supplementFrequency">
+          <button type="button" data-value="once">Just today</button>
+          <button type="button" data-value="daily">Every day</button>
+          <button type="button" data-value="course">Fixed course</button>
+        </div>
+        <div id="supplementCourseDaysWrap" class="hidden" style="margin-top:12px">
+          <label>Course length (days)</label>
+          <input id="supplementCourseDays" type="number" min="1" max="180" placeholder="e.g. 10" />
+        </div>
+      </div>
+
       <label>Dose &amp; time</label>
       <div class="photo-choice-row">
         <input id="supplementDose" placeholder="e.g. 400mg" />
@@ -585,7 +599,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
-  <script src="app.js?v=57"></script>
+  <script src="app.js?v=58"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {

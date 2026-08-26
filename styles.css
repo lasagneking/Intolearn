@@ -169,6 +169,10 @@ dialog input,dialog textarea{margin-bottom:14px}
 @media (prefers-reduced-motion: reduce){
   .side-effect-flag{animation:none;box-shadow:0 0 7px 1px rgba(209,102,64,.45)}
 }
+.course-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--line);margin-bottom:8px}
+.course-row-main strong{display:block;font-weight:600;font-size:14px}
+.course-badge{font-family:var(--font-mono);font-size:10px;color:var(--trace);text-transform:uppercase;letter-spacing:.03em;margin-top:2px;display:block}
+.course-stop-btn{border:1px solid var(--line);background:transparent;color:var(--muted);font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.03em;padding:7px 10px;flex-shrink:0}
 
 /* v3.2 explicit iPhone photo sources */
 .photo-choice-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}

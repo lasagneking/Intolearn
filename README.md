@@ -71,6 +71,15 @@ The lookup runs **after** the entry is saved and the dialog is closed — it nev
 
 Separately from that flag, supplement and medication names are also fed into the same pattern-matching engine used for food ingredients (Report → Possible connections, Trends), so if your own data shows a personal correlation the database wouldn't know about — say, your specific fish oil brand — that still surfaces on its own.
 
+### Recurring courses
+
+When adding a new supplement or medication, "How often?" offers three options:
+- **Just today** — a one-off entry, the original behaviour.
+- **Every day** — logs itself automatically every day from now on, with no need to re-enter it, until you tap **Stop** on it (shown in a small "active courses" list on the Today screen).
+- **Fixed course** (e.g. a 10-day antibiotic) — logs itself automatically for exactly that many days, then stops on its own.
+
+Each day's entry is a normal, independent diary entry once created (editing one day doesn't change other days), so the correlation engine and Report see them exactly like any other entry. Deleting a single day's auto-logged entry only skips that one day — the course keeps running; use **Stop** on the course itself to end it early. Recurrence can only be set when creating a new entry, not when editing an existing one, to avoid accidentally spinning up a second course.
+
 **Known limitation**: the openFDA lookup depends on that API allowing cross-origin requests directly from a browser. It's a public API intended for this kind of use and has worked in testing, but if you ever see prescription lookups silently doing nothing where you'd expect a match, that's the first thing to check (openFDA's status, or whether a lightweight proxy is needed).
 
 ## Known limitations

@@ -1,7 +1,7 @@
 {
-  "name": "Intolearn by Lee Thumwood",
+  "name": "Intolearn",
   "short_name": "Intolearn",
-  "description": "Personal food and symptom diary with ingredient scanning and pattern insights.",
+  "description": "Food and symptom diary with ingredient scanning and pattern insights.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
