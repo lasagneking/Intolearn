@@ -1,4 +1,4 @@
-# Intolearn — by Lee Thumwood
+# Intolearn
 
 Personal-use prototype. Current build: **v5.1**.
 
@@ -47,6 +47,12 @@ Ingredient photos are compressed before being stored (resized and re-compressed 
 A service worker (`sw.js`) precaches the app shell (HTML/CSS/JS, icons), the Google Fonts stylesheet, and the third-party libraries (Quagga2, Tesseract.js, CropperJS) on first successful load, so the app continues to open and basic scanning/cropping keeps working without a connection afterwards. Barcode lookups against Open Food Facts still require a connection; cached products (already looked up once) work offline.
 
 **If you edit `app.js`, `styles.css`, `index.html`, or the icons: bump `CACHE_VERSION` in `sw.js`.** Otherwise installed devices may keep serving the old cached versions of those files.
+
+## Onboarding & profile
+
+On first launch, Intolearn asks for a name (used for the "Good morning/afternoon/evening" greeting), an optional photo (replaces the settings gear in the top bar with your photo, or your initial if no photo is set), and any known allergies/intolerances — picked from the same 22-item list used in Ingredient Checker. Whatever's selected there becomes the **default pre-selected set** every time you open Ingredient Checker afterward; you can still add or remove ingredients per-check without changing your saved defaults.
+
+Tap your avatar (top right) → **Edit profile** to change any of this later. "Clear all local data" in Settings also resets the profile and re-triggers onboarding, since it's a fresh start.
 
 ## Visual identity
 

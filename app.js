@@ -2,7 +2,7 @@
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 2;
-const APP_VERSION = "5.2";
+const APP_VERSION = "5.3";
 
 // Hand-sketched, single-stroke "field notebook" icon set — every icon uses
 // currentColor so it inherits ink/amber automatically on selected/active
@@ -31,7 +31,8 @@ const ICONS={
   plate:`<svg viewBox="0 0 24 24" ${SVG_BASE}><circle cx="11" cy="12" r="7.5"/><circle cx="11" cy="12" r="3.6"/><path d="M18.5 6v12"/></svg>`,
   camera:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M4 8.5h3l1.4-2h5.2l1.4 2H20V19H4Z"/><circle cx="12" cy="13.2" r="3.3"/></svg>`,
   clipboard:`<svg viewBox="0 0 24 24" ${SVG_BASE}><rect x="5.5" y="4.5" width="13" height="16" rx="0.5"/><rect x="9" y="3" width="6" height="3" rx="0.5"/><path d="M8.5 11h7M8.5 14.5h7M8.5 18h4.5"/></svg>`,
-  tally:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M5 6.5h11M5 12h14M5 17.5h8"/></svg>`
+  tally:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M5 6.5h11M5 12h14M5 17.5h8"/></svg>`,
+  gear:`<svg viewBox="0 0 24 24" ${SVG_BASE}><circle cx="12" cy="12" r="3.2"/><path d="M12 3.5v2.3M12 18.2v2.3M20.5 12h-2.3M5.8 12H3.5M17.7 6.3l-1.6 1.6M7.9 16.1l-1.6 1.6M17.7 17.7l-1.6-1.6M7.9 7.9 6.3 6.3"/></svg>`
 };
 function moodIcon(feeling){
   return ICONS[({Great:"great",Fine:"fine",Meh:"meh",Poor:"poor"})[feeling]||"fine"];
@@ -817,9 +818,14 @@ let cropper = null;
 let pendingPhotoFile = null;
 let cropDestination = "meal";
 
-function blankState(){ return { days:{} }; }
+function blankState(){ return { days:{}, profile:{name:"", photo:"", allergies:[], onboarded:false} }; }
 function loadState(){
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || blankState(); }
+  try {
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY)) || blankState();
+    parsed.days ||= {};
+    parsed.profile ||= {name:"", photo:"", allergies:[], onboarded:false};
+    return parsed;
+  }
   catch { return blankState(); }
 }
 function isQuotaError(err){
@@ -1588,10 +1594,17 @@ document.getElementById("ingredientLibrary").addEventListener("change",e=>{
 document.getElementById("ingredients").addEventListener("input",e=>renderFamilies(e.target.value));
 
 
+function applyDefaultCheckerTriggers(){
+  const defaults=new Set(state.profile?.allergies || []);
+  document.querySelectorAll("#checkerTriggers button").forEach(btn=>{
+    btn.classList.toggle("selected", defaults.has(btn.dataset.trigger));
+  });
+}
 document.getElementById("openCheckerBtn").addEventListener("click",()=>{
   resetCheckerResult();
   document.getElementById("checkerCamera").value="";
   document.getElementById("checkerLibrary").value="";
+  applyDefaultCheckerTriggers();
   document.getElementById("checkerDialog").showModal();
 });
 function closeCheckerDialog(){
@@ -1950,6 +1963,127 @@ function renderTrends(){
   `).join(""):`<div class="card"><h3>Not enough data yet</h3><p class="muted">${consideredDays<3?"Log a few more days and Intolearn will start surfacing associations here.":"Nothing stands out clearly from your usual baseline yet — that's a good sign, or you just need more repeated exposures logged."}</p></div>`;
 }
 
+// --- Profile & onboarding ---
+let onboardPhotoData = "";
+
+function renderAvatar(){
+  const btn=document.getElementById("settingsBtn");
+  if(!btn) return;
+  if(state.profile?.photo){
+    btn.innerHTML=`<img src="${state.profile.photo}" alt="Your photo">`;
+  }else if(state.profile?.name){
+    btn.innerHTML=escapeHtml(state.profile.name.trim().charAt(0).toUpperCase());
+  }else{
+    btn.innerHTML=ICONS.gear;
+  }
+}
+
+function renderGreeting(){
+  const el=document.getElementById("greetingLine");
+  if(!el) return;
+  const name=state.profile?.name?.trim();
+  if(!name){ el.textContent="Field notes for what you eat"; return; }
+  const hour=new Date().getHours();
+  const part = hour<12 ? "Good morning" : hour<18 ? "Good afternoon" : "Good evening";
+  el.textContent=`${part}, ${name}`;
+}
+
+function renderSettingsProfile(){
+  const box=document.getElementById("settingsProfileSummary");
+  if(!box) return;
+  const name=state.profile?.name?.trim() || "Add your name";
+  const avatar=state.profile?.photo
+    ? `<img src="${state.profile.photo}" alt="Your photo">`
+    : escapeHtml((state.profile?.name||"?").trim().charAt(0).toUpperCase()||"?");
+  const allergyCount=(state.profile?.allergies||[]).length;
+  box.innerHTML=`
+    <div class="profile-avatar">${avatar}</div>
+    <div>
+      <strong>${escapeHtml(name)}</strong>
+      <small>${allergyCount ? allergyCount+" default ingredient"+(allergyCount===1?"":"s")+" set" : "No default ingredients set"}</small>
+    </div>`;
+}
+
+function getSelectedOnboardingTriggers(){
+  return [...document.querySelectorAll("#onboardingTriggers button.selected")].map(b=>b.dataset.trigger);
+}
+
+function openOnboarding(isEdit=false){
+  const nameEl=document.getElementById("onboardName");
+  nameEl.value=isEdit ? (state.profile?.name||"") : "";
+  nameEl.classList.remove("field-error");
+
+  onboardPhotoData=isEdit ? (state.profile?.photo||"") : "";
+  document.getElementById("onboardPhotoPreview").innerHTML=onboardPhotoData
+    ? `<img src="${onboardPhotoData}" alt="Profile photo preview" style="width:64px;height:64px;object-fit:cover;border:1px solid var(--line);margin-top:10px;display:block">`
+    : "";
+
+  const defaults=new Set(isEdit ? (state.profile?.allergies||[]) : []);
+  document.querySelectorAll("#onboardingTriggers button").forEach(btn=>{
+    btn.classList.toggle("selected", defaults.has(btn.dataset.trigger));
+  });
+
+  document.getElementById("onboardingEyebrow").textContent=isEdit ? "PROFILE" : "WELCOME";
+  document.getElementById("onboardingTitle").textContent=isEdit ? "Edit your profile" : "Let's set up Intolearn";
+  document.getElementById("onboardingSaveBtn").textContent=isEdit ? "Save profile" : "Get started";
+  document.getElementById("closeOnboardingBtn").classList.toggle("hidden", !isEdit);
+
+  document.getElementById("onboardingDialog").showModal();
+}
+function closeOnboardingDialog(){
+  const dialog=document.getElementById("onboardingDialog");
+  if(!dialog) return;
+  try{ if(dialog.open) dialog.close(); }catch(err){ console.warn("Dialog close failed",err); }
+  if(dialog.hasAttribute("open")) dialog.removeAttribute("open");
+}
+
+async function handleOnboardPhoto(file){
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=async ()=>{
+    const resized=await resizeDataURLForStorage(reader.result);
+    onboardPhotoData=resized;
+    document.getElementById("onboardPhotoPreview").innerHTML=
+      `<img src="${resized}" alt="Profile photo preview" style="width:64px;height:64px;object-fit:cover;border:1px solid var(--line);margin-top:10px;display:block">`;
+  };
+  reader.readAsDataURL(file);
+}
+document.getElementById("onboardCameraInput").addEventListener("change", e=>handleOnboardPhoto(e.target.files?.[0]));
+document.getElementById("onboardLibraryInput").addEventListener("change", e=>handleOnboardPhoto(e.target.files?.[0]));
+
+document.querySelectorAll("#onboardingTriggers button").forEach(btn=>{
+  btn.addEventListener("click", ()=>btn.classList.toggle("selected"));
+});
+
+document.getElementById("onboardingSaveBtn").addEventListener("click", ()=>{
+  const nameEl=document.getElementById("onboardName");
+  const name=nameEl.value.trim();
+  if(!name){
+    nameEl.classList.add("field-error");
+    nameEl.focus();
+    showToast("Please enter your name.");
+    return;
+  }
+  nameEl.classList.remove("field-error");
+
+  state.profile={
+    name,
+    photo: onboardPhotoData || "",
+    allergies: getSelectedOnboardingTriggers(),
+    onboarded: true
+  };
+  saveState();
+  renderAvatar();
+  renderGreeting();
+  closeOnboardingDialog();
+  showToast("Profile saved");
+});
+document.getElementById("closeOnboardingBtn").addEventListener("click", closeOnboardingDialog);
+document.getElementById("onboardingDialog").addEventListener("cancel", e=>{
+  if(!state.profile?.onboarded){ e.preventDefault(); return; }
+  closeOnboardingDialog();
+});
+
 document.querySelectorAll(".nav-item").forEach(btn=>{
   btn.onclick=()=>{
     document.querySelectorAll(".nav-item").forEach(b=>b.classList.remove("active"));
@@ -1960,7 +2094,14 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
   };
 });
 
-document.getElementById("settingsBtn").onclick=()=>document.getElementById("settingsDialog").showModal();
+document.getElementById("settingsBtn").onclick=()=>{
+  renderSettingsProfile();
+  document.getElementById("settingsDialog").showModal();
+};
+document.getElementById("editProfileBtn").onclick=()=>{
+  document.getElementById("settingsDialog").close();
+  openOnboarding(true);
+};
 document.getElementById("exportDataBtn").onclick=()=>{
   const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="intolearn-diary.json"; a.click();
@@ -1968,7 +2109,10 @@ document.getElementById("exportDataBtn").onclick=()=>{
 };
 document.getElementById("clearDataBtn").onclick=()=>{
   if(confirm("Clear all Intolearn data stored in this browser?")){
-    localStorage.removeItem(STORAGE_KEY); state=blankState(); ensureDay(); renderAll(); showToast("Local data cleared");
+    localStorage.removeItem(STORAGE_KEY); state=blankState(); ensureDay(); renderAll();
+    renderAvatar(); renderGreeting();
+    showToast("Local data cleared");
+    openOnboarding(false);
   }
 };
 
@@ -1987,3 +2131,6 @@ function renderAll(){
   });
 }
 ensureDay(); renderAll();
+renderAvatar();
+renderGreeting();
+if(!state.profile?.onboarded){ openOnboarding(false); }

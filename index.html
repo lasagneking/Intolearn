@@ -21,9 +21,9 @@
     <header class="topbar">
       <div>
         <div class="brand">Intolearn</div>
-        <div class="byline">Field notes for what you eat</div>
+        <div class="byline" id="greetingLine">Field notes for what you eat</div>
       </div>
-      <button class="icon-button" id="settingsBtn" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.5v2.3M12 18.2v2.3M20.5 12h-2.3M5.8 12H3.5M17.7 6.3l-1.6 1.6M7.9 16.1l-1.6 1.6M17.7 17.7l-1.6-1.6M7.9 7.9 6.3 6.3"/></svg></button>
+      <button class="icon-button avatar-button" id="settingsBtn" aria-label="Settings"></button>
     </header>
 
     <main>
@@ -516,9 +516,68 @@
         </div>
         <button value="cancel" class="icon-button">✕</button>
       </div>
-      <p class="muted">Your diary is stored only in this browser on this device.</p>
+
+      <div class="profile-summary" id="settingsProfileSummary"></div>
+      <button type="button" class="secondary wide" id="editProfileBtn">Edit profile</button>
+
+      <p class="muted" style="margin-top:20px">Your diary is stored only in this browser on this device.</p>
       <button type="button" class="secondary wide" id="exportDataBtn">Export diary as JSON</button>
       <button type="button" class="danger wide" id="clearDataBtn">Clear all local data</button>
+    </form>
+  </dialog>
+
+  <dialog id="onboardingDialog">
+    <form method="dialog" class="crop-shell" onsubmit="return false">
+      <div class="dialog-head">
+        <div>
+          <div class="eyebrow" id="onboardingEyebrow">WELCOME</div>
+          <h2 id="onboardingTitle">Let's set up Intolearn</h2>
+        </div>
+        <button type="button" class="icon-button hidden" id="closeOnboardingBtn" aria-label="Close">✕</button>
+      </div>
+
+      <label>What should we call you?</label>
+      <input id="onboardName" placeholder="Your name" autocomplete="off" />
+
+      <label>Add a photo (optional)</label>
+      <div class="photo-choice-row">
+        <label class="secondary file-label photo-choice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-2px;margin-right:5px"><path d="M4 8.5h3l1.4-2h5.2l1.4 2H20V19H4Z"/><circle cx="12" cy="13.2" r="3.3"/></svg>Take photo
+          <input type="file" accept="image/*" capture="user" id="onboardCameraInput">
+        </label>
+        <label class="secondary file-label photo-choice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-2px;margin-right:5px"><rect x="3.5" y="4.5" width="17" height="15" rx="0.5"/><path d="m4 16 4.5-5 3.5 3.5L16 10l4 5.5"/><circle cx="8.3" cy="8.3" r="1.3"/></svg>Choose photo
+          <input type="file" accept="image/*" id="onboardLibraryInput">
+        </label>
+      </div>
+      <div id="onboardPhotoPreview"></div>
+
+      <label style="margin-top:20px">Any known allergies or intolerances?</label>
+      <p class="muted" style="margin-top:-6px">Optional — these become your default selection in Ingredient Checker.</p>
+      <div class="checker-trigger-grid" id="onboardingTriggers">
+        <button type="button" data-trigger="Cereals containing gluten">🌾 Gluten cereals</button>
+        <button type="button" data-trigger="Wheat">🌾 Wheat</button>
+        <button type="button" data-trigger="Milk / dairy">🥛 Milk / dairy</button>
+        <button type="button" data-trigger="Lactose">🥛 Lactose</button>
+        <button type="button" data-trigger="Egg">🥚 Egg</button>
+        <button type="button" data-trigger="Soya">🫘 Soya</button>
+        <button type="button" data-trigger="Peanuts">🥜 Peanuts</button>
+        <button type="button" data-trigger="Tree nuts">🌰 Tree nuts</button>
+        <button type="button" data-trigger="Sesame">🌱 Sesame</button>
+        <button type="button" data-trigger="Fish">🐟 Fish</button>
+        <button type="button" data-trigger="Crustaceans">🦐 Crustaceans</button>
+        <button type="button" data-trigger="Molluscs">🐚 Molluscs</button>
+        <button type="button" data-trigger="Celery">🌿 Celery</button>
+        <button type="button" data-trigger="Mustard">🟡 Mustard</button>
+        <button type="button" data-trigger="Sulphites">⚗️ Sulphites</button>
+        <button type="button" data-trigger="Lupin">🌼 Lupin</button>
+        <button type="button" data-trigger="Onion">🧅 Onion</button>
+        <button type="button" data-trigger="Garlic">🧄 Garlic</button>
+        <button type="button" data-trigger="Chilli">🌶️ Chilli</button>
+        <button type="button" data-trigger="Tomato">🍅 Tomato</button>
+        <button type="button" data-trigger="Legumes / pulses">🫘 Pulses</button>
+        <button type="button" data-trigger="Sweeteners">🍬 Polyol sweeteners</button>
+      </div>
+
+      <button type="button" class="primary wide" id="onboardingSaveBtn" style="margin-top:20px">Get started</button>
     </form>
   </dialog>
 
@@ -526,7 +585,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
-  <script src="app.js?v=52"></script>
+  <script src="app.js?v=53"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
