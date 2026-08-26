@@ -2,7 +2,7 @@
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 2;
-const APP_VERSION = "5.6";
+const APP_VERSION = "5.7";
 
 // Hand-sketched, single-stroke "field notebook" icon set — every icon uses
 // currentColor so it inherits ink/amber automatically on selected/active
@@ -1305,7 +1305,7 @@ function renderSupplements(){
       <div class="food-entry-main">
         <strong>${escapeHtml(it.name)}</strong>
         <small>${[it.kind==="prescription"?"Prescription/OTC":"Supplement", it.dose, it.time].filter(Boolean).join(" · ")}</small>
-        ${it.flag ? `<div class="ingredient-tags"><span class="allergen-tag">${escapeHtml(titleCase(it.flag.terms.join(", ")))}</span></div>` : ""}
+        ${it.flag ? `<div class="ingredient-tags"><span class="side-effect-flag">${escapeHtml(titleCase(it.flag.terms.join(", ")))}</span></div>` : ""}
       </div>
       <div class="entry-actions">
         <button type="button" class="entry-action edit-supplement" data-index="${i}">View / Edit</button>

@@ -158,6 +158,18 @@ dialog input,dialog textarea{margin-bottom:14px}
 .tracking-section>strong{display:block;margin-bottom:8px}
 .allergen-tag{padding:6px 9px;border-radius:0;background:transparent;color:var(--flag);font-size:10px;font-family:var(--font-mono);font-weight:700;text-transform:uppercase;letter-spacing:.03em;border:1px solid var(--flag)}
 
+/* Side-effect flags on supplements/meds get a slow attention-pulse — a
+   deliberate, scoped exception to the flat/no-glow system, since these
+   are health warnings that shouldn't be easy to skim past. */
+.side-effect-flag{display:inline-block;padding:6px 9px;border-radius:0;background:rgba(209,102,64,.1);color:var(--flag);font-size:10px;font-family:var(--font-mono);font-weight:700;text-transform:uppercase;letter-spacing:.03em;border:1px solid var(--flag);animation:flag-pulse 2.2s ease-in-out infinite}
+@keyframes flag-pulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(209,102,64,.4)}
+  50%{box-shadow:0 0 11px 2px rgba(209,102,64,.65)}
+}
+@media (prefers-reduced-motion: reduce){
+  .side-effect-flag{animation:none;box-shadow:0 0 7px 1px rgba(209,102,64,.45)}
+}
+
 /* v3.2 explicit iPhone photo sources */
 .photo-choice-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
 .photo-choice{display:flex;align-items:center;justify-content:center;text-align:center;min-height:48px;margin:0}
