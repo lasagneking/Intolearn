@@ -2,7 +2,7 @@
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 2;
-const APP_VERSION = "5.9";
+const APP_VERSION = "6.0";
 
 // Hand-sketched, single-stroke "field notebook" icon set — every icon uses
 // currentColor so it inherits ink/amber automatically on selected/active
@@ -926,13 +926,17 @@ function renderMeals(){
   mealTypes.forEach(m=>{
     const card=document.createElement("section");
     card.className="meal-card";
+    card.dataset.collapseKey=m.key;
     const items=day.meals[m.key]||[];
     card.innerHTML=`
-      <div class="meal-head">
+      <div class="meal-head collapse-toggle">
         <div><span class="icon-tile">${m.icon}</span><div><h3>${m.label}</h3><p>${items.length ? items.length+" entr"+(items.length===1?"y":"ies") : "Nothing logged yet"}</p></div></div>
-        <button class="add-btn" data-meal="${m.key}" type="button">+ Add</button>
+        <div class="meal-head-right">
+          <span class="collapse-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+          <button class="add-btn" data-meal="${m.key}" type="button">+ Add</button>
+        </div>
       </div>
-      <div class="entry-list">
+      <div class="entry-list collapsible-content">
         ${items.map((it,i)=>{
           if(it.barcode){
             return `
@@ -969,6 +973,7 @@ function renderMeals(){
   document.querySelectorAll(".add-btn").forEach(btn=>btn.onclick=()=>openMeal(btn.dataset.meal));
   document.querySelectorAll(".view-entry").forEach(btn=>btn.onclick=()=>openMeal(btn.dataset.meal, Number(btn.dataset.index), dateKey()));
   document.querySelectorAll(".delete-entry").forEach(btn=>btn.onclick=()=>deleteMeal(btn.dataset.meal, Number(btn.dataset.index), false, dateKey()));
+  wireCollapseToggles();
 }
 
 // --- Quick add: surfaces your own past entries so common meals don't
@@ -1342,6 +1347,39 @@ function showSupplementFlag(flag){
   document.getElementById("supplementFlagText").textContent=
     `${titleCase(flag.terms.join(", "))}. Source: ${flag.source}. This is general reference information, not a warning specific to you — always check the patient leaflet or ask a pharmacist.`;
   box.classList.remove("hidden");
+}
+
+// --- Collapsible Today sections (Breakfast/Lunch/Dinner/Snacks/Supplements) ---
+// Preference only, stored separately from diary data so it doesn't clutter
+// JSON exports or the correlation engine.
+const COLLAPSE_KEY="intolearn_collapse_v1";
+function loadCollapseState(){
+  try{ return JSON.parse(localStorage.getItem(COLLAPSE_KEY)) || {}; }
+  catch{ return {}; }
+}
+let collapseState=loadCollapseState();
+function saveCollapseState(){
+  try{ localStorage.setItem(COLLAPSE_KEY, JSON.stringify(collapseState)); }
+  catch(err){ console.warn("Could not save collapse state",err); }
+}
+function applyCollapseState(){
+  document.querySelectorAll("[data-collapse-key]").forEach(card=>{
+    card.classList.toggle("collapsed", !!collapseState[card.dataset.collapseKey]);
+  });
+}
+function toggleCollapse(key){
+  collapseState[key]=!collapseState[key];
+  saveCollapseState();
+  applyCollapseState();
+}
+function wireCollapseToggles(){
+  document.querySelectorAll(".collapse-toggle").forEach(head=>{
+    head.onclick=e=>{
+      if(e.target.closest(".add-btn")) return;
+      const card=head.closest("[data-collapse-key]");
+      if(card) toggleCollapse(card.dataset.collapseKey);
+    };
+  });
 }
 
 function renderSupplements(){
@@ -2259,7 +2297,7 @@ function renderTodayEyebrow(){
 }
 
 function renderAll(){
-  const jobs=[renderMeals,renderExit,renderWeek,renderMonth,renderTrends,renderReport,renderTodayEyebrow,renderSupplements,renderCourses];
+  const jobs=[renderMeals,renderExit,renderWeek,renderMonth,renderTrends,renderReport,renderTodayEyebrow,renderSupplements,renderCourses,applyCollapseState];
   jobs.forEach(fn=>{
     try{ fn(); }
     catch(err){ console.error(fn.name+" failed",err); }

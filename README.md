@@ -38,6 +38,8 @@ This still isn't a diagnosis — it's association within your own logged data, a
 
 ## Data & privacy
 
+Whether each Today section (Breakfast, Lunch, Dinner, Snacks & Drinks, Supplements & meds) is collapsed or expanded is a display preference, stored under its own `localStorage` key (`intolearn_collapse_v1`) separate from your diary — so it doesn't clutter JSON exports or feed into the correlation engine.
+
 Your diary, product cache and settings are stored only in `localStorage` in this browser, on this device — nothing is sent to a server except the barcode lookups to Open Food Facts and the OCR/scanning libraries, which run client-side. There is no account, sync, or automatic backup: use **Settings → Export diary as JSON** periodically if you don't want to risk losing data to a cleared browser, reinstalled PWA, or new device.
 
 Ingredient photos are compressed before being stored (resized and re-compressed to keep `localStorage` usage low over months of logging); the original high-resolution photo is only used transiently for OCR and isn't kept.
