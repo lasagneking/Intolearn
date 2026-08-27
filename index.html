@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,500;1,9..144,600&family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Petit+Formal+Script&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css" />
-  <link rel="stylesheet" href="styles.css?v=65" />
+  <link rel="stylesheet" href="styles.css?v=66" />
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Intolearn">
@@ -19,7 +19,12 @@
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <div>
+      <div class="topbar-bg" aria-hidden="true">
+        <svg class="tb-icon tb-icon-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4"/><path d="M12 6l-2.4-1.4M12 6l2.4-1.4M12 9.2l-2.4-1.4M12 9.2l2.4-1.4M12 12.4l-2.4-1.4M12 12.4l2.4-1.4M12 15.6l-2.4-1.4M12 15.6l2.4-1.4"/></svg>
+        <svg class="tb-icon tb-icon-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6l-1 3v12a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V7Z"/><path d="M8.5 10.5h7"/></svg>
+        <svg class="tb-icon tb-icon-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.8c-3.2 3.2-5.3 8-5.3 11.3a5.3 5.3 0 1 0 10.6 0c0-3.3-2.1-8.1-5.3-11.3Z"/></svg>
+      </div>
+      <div class="topbar-content">
         <div class="brand">Intolearn</div>
         <div class="byline" id="greetingLine">Field notes for what you eat</div>
       </div>
@@ -666,7 +671,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
-  <script src="app.js?v=65"></script>
+  <script src="app.js?v=66"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
