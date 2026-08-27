@@ -2,7 +2,7 @@
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 2;
-const APP_VERSION = "6.5";
+const APP_VERSION = "6.6";
 
 // Hand-sketched, single-stroke "field notebook" icon set — every icon uses
 // currentColor so it inherits ink/amber automatically on selected/active
@@ -2162,9 +2162,29 @@ document.getElementById("monthFilter").addEventListener("input",renderMonthResul
 function dayIsSymptomatic(day){
   return !!(day && ((day.exit?.symptoms||[]).length>0 || ["Poor","Meh"].includes(day.exit?.feeling)));
 }
-function dayReactionWindow(k){
-  const d=new Date(k+"T12:00:00"); d.setDate(d.getDate()+1);
-  return dayIsSymptomatic(state.days[k]) || dayIsSymptomatic(state.days[dateKey(d)]);
+// --- Reaction window: how many days after exposure a symptom still
+// counts as connected. Configurable rather than fixed, since delayed
+// food reactions vary a lot person to person and there's no single
+// "correct" default we could validate against any one person's body. ---
+const REACTION_WINDOW_KEY="intolearn_reaction_window_v1";
+function loadReactionWindow(){
+  try{ const v=JSON.parse(localStorage.getItem(REACTION_WINDOW_KEY)); return [0,1,3].includes(v) ? v : 1; }
+  catch{ return 1; }
+}
+let reactionWindowDays=loadReactionWindow();
+function saveReactionWindow(){
+  try{ localStorage.setItem(REACTION_WINDOW_KEY, JSON.stringify(reactionWindowDays)); }
+  catch(err){ console.warn("Could not save reaction window",err); }
+}
+function reactionWindowLabel(days){
+  return days===0 ? "the same day" : days===1 ? "the same day or the day after" : `the same day or within ${days} days after`;
+}
+function dayReactionWindow(k, windowDays=reactionWindowDays){
+  for(let i=0;i<=windowDays;i++){
+    const d=new Date(k+"T12:00:00"); d.setDate(d.getDate()+i);
+    if(dayIsSymptomatic(state.days[dateKey(d)])) return true;
+  }
+  return false;
 }
 function buildAssociationStats(dateKeys, getTags, {minDays=3, minLiftPts=15, maxPresenceRatio=0.85}={}){
   const statsRaw={};
@@ -2268,7 +2288,7 @@ function renderReport(){
     document.getElementById("knownSuspects").innerHTML=suspects.map(x=>`
       <div class="connection-card">
         <div class="connection-title"><strong>${escapeHtml(x.name)}</strong><span class="connection-score">${x.symptomDays}/${x.days} days</span></div>
-        <p>Flagged for: ${escapeHtml(titleCase(x.flag.terms.join(", ")))}. Source: ${escapeHtml(x.flag.source)}. In this period, ${x.symptomDays} of ${x.days} day${x.days===1?"":"s"} you took it were followed by symptoms that day or the next.</p>
+        <p>Flagged for: ${escapeHtml(titleCase(x.flag.terms.join(", ")))}. Source: ${escapeHtml(x.flag.source)}. In this period, ${x.symptomDays} of ${x.days} day${x.days===1?"":"s"} you took it were followed by symptoms within ${reactionWindowLabel(reactionWindowDays)}.</p>
       </div>`).join("");
   }else{
     suspectsPanel.classList.add("hidden");
@@ -2280,7 +2300,7 @@ function renderReport(){
     <div class="connection-card">
       <div class="connection-title"><strong>${escapeHtml(titleCase(x.name))}</strong><span class="connection-score">${Math.round(x.rate*100)}%</span></div>
       <div class="connection-bar"><span style="width:${Math.round(x.rate*100)}%"></span></div>
-      <p>${x.symptomDays} of ${x.days} exposure day${x.days===1?"":"s"} were followed by symptoms that day or the next — vs ${Math.round(baseline*100)}% of all recorded days.</p>
+      <p>${x.symptomDays} of ${x.days} exposure day${x.days===1?"":"s"} were followed by symptoms within ${reactionWindowLabel(reactionWindowDays)} — vs ${Math.round(baseline*100)}% of all recorded days.</p>
     </div>`).join(""):`<p class="muted">${consideredDays<3?"Not enough recorded days yet.":"No ingredient stands out clearly from your usual baseline yet."} Keep logging and this section will build automatically.</p>`;
 
   const exposures=Object.entries(statsRaw).map(([name,v])=>({name,...v})).sort((a,b)=>b.days-a.days).slice(0,8);
@@ -2309,6 +2329,24 @@ document.querySelectorAll(".range-btn").forEach(btn=>btn.addEventListener("click
   btn.classList.add("active"); reportDays=Number(btn.dataset.days); renderReport();
 }));
 
+function applyReactionWindowUI(){
+  document.querySelectorAll('[data-choice="reactionWindow"] button').forEach(b=>{
+    b.classList.toggle("selected", Number(b.dataset.value)===reactionWindowDays);
+  });
+  const howItWorks=document.getElementById("trendsHowItWorks");
+  if(howItWorks){
+    howItWorks.textContent=`Ingredients are compared with symptom days in your local diary, counting a symptom logged within ${reactionWindowLabel(reactionWindowDays)}. Ingredients logged on almost every day, or without enough repeats, are left out — only ones noticeably above your own baseline symptom rate are shown. The more consistently you log, the more useful this becomes.`;
+  }
+}
+document.querySelectorAll('[data-choice="reactionWindow"] button').forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    reactionWindowDays=Number(btn.dataset.value);
+    saveReactionWindow();
+    applyReactionWindowUI();
+    renderAll();
+  });
+});
+
 function renderTrends(){
   const allKeys=Object.keys(state.days||{});
   const {ranked, baseline, consideredDays}=buildAssociationStats(allKeys, day=>{
@@ -2327,7 +2365,7 @@ function renderTrends(){
   document.getElementById("trendCards").innerHTML=trends.length?trends.map(t=>`
     <div class="trend-card">
       <h3>${escapeHtml(titleCase(t.name))}</h3>
-      <p class="muted">${t.symptomDays} of ${t.days} logged day${t.days===1?"":"s"} with this ingredient were followed by symptoms that day or the next — vs ${Math.round(baseline*100)}% of all your recorded days.</p>
+      <p class="muted">${t.symptomDays} of ${t.days} logged day${t.days===1?"":"s"} with this ingredient were followed by symptoms within ${reactionWindowLabel(reactionWindowDays)} — vs ${Math.round(baseline*100)}% of all your recorded days.</p>
       <div class="trend-bar"><span style="width:${Math.round(t.rate*100)}%"></span></div>
       <div class="trend-meta"><span>Rate above your baseline</span><strong>+${Math.round((t.rate-baseline)*100)}pt</strong></div>
     </div>
@@ -2505,4 +2543,5 @@ ensureDay(); renderAll();
 renderAvatar();
 renderGreeting();
 renderAllergenGridIcons();
+applyReactionWindowUI();
 if(!state.profile?.onboarded){ openOnboarding(false); }

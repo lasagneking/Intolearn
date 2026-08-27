@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,500;1,9..144,600&family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Petit+Formal+Script&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css" />
-  <link rel="stylesheet" href="styles.css?v=64" />
+  <link rel="stylesheet" href="styles.css?v=65" />
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Intolearn">
@@ -241,10 +241,20 @@
           <h1>What may be worth noticing</h1>
           <p>Intolearn highlights associations — not diagnoses.</p>
         </div>
+
+        <div class="field-block" style="margin-top:0">
+          <label>Reaction window — how many days after eating still counts</label>
+          <div class="choice-row" data-choice="reactionWindow">
+            <button type="button" data-value="0">Same day</button>
+            <button type="button" data-value="1">Next day</button>
+            <button type="button" data-value="3">Up to 3 days</button>
+          </div>
+        </div>
+
         <div id="trendCards" class="trend-stack"></div>
         <div class="card helper-card">
           <h3>How this works</h3>
-          <p>Ingredients are compared with symptom days in your local diary, counting a symptom logged either the same day or the next day. Ingredients logged on almost every day, or without enough repeats, are left out — only ones noticeably above your own baseline symptom rate are shown. The more consistently you log, the more useful this becomes.</p>
+          <p id="trendsHowItWorks">Ingredients are compared with symptom days in your local diary. Ingredients logged on almost every day, or without enough repeats, are left out — only ones noticeably above your own baseline symptom rate are shown. The more consistently you log, the more useful this becomes.</p>
         </div>
       </section>
     </main>
@@ -656,7 +666,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
-  <script src="app.js?v=64"></script>
+  <script src="app.js?v=65"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
