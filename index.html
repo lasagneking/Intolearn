@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,500;1,9..144,600&family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Petit+Formal+Script&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css" />
-  <link rel="stylesheet" href="styles.css?v=66" />
+  <link rel="stylesheet" href="styles.css?v=67" />
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Intolearn">
@@ -56,6 +56,22 @@
           </div>
           <button type="button" class="primary checker-launch-btn" id="openCheckerBtn">Check food</button>
         </section>
+
+        <section class="checker-launch-card" id="trialLaunchCard">
+          <div class="checker-launch-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="12" r="7.5"/><path d="M6 6.5l10 11"/><circle cx="19" cy="4.5" r="1.1" fill="var(--trace)" stroke="none"/></svg></div>
+          <div class="checker-launch-copy">
+            <div class="eyebrow">ELIMINATION TRIAL</div>
+            <h3>Test a suspect ingredient</h3>
+            <p>Remove it for a set period, then reintroduce it deliberately and watch closely.</p>
+          </div>
+          <button type="button" class="primary checker-launch-btn" id="openTrialDialogBtn">Start a trial</button>
+        </section>
+
+        <div class="checker-warning hidden" id="activeTrialBanner">
+          <strong id="activeTrialTitle">Trial in progress</strong>
+          <p id="activeTrialText"></p>
+          <button type="button" class="danger wide" id="stopTrialBtn" style="margin-top:10px">Stop trial</button>
+        </div>
 
         <div class="section-title-row">
           <div>
@@ -215,6 +231,12 @@
           <div class="report-panel-head"><div><div class="eyebrow">KNOWN SUSPECTS</div><h2>Flagged supplements &amp; meds</h2></div><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 21 19H3Z"/><path d="M12 10v3.4"/><circle cx="12" cy="16.2" r="0.35" fill="currentColor" stroke="currentColor" stroke-width="1.6"/></svg></span></div>
           <p class="muted" style="margin-top:-6px">These already have independent evidence against them (a drug label or reference source), so they're shown regardless of how often you take them — unlike the pattern-matching below, which only works for things you don't have every day.</p>
           <div id="knownSuspects"></div>
+        </section>
+
+        <section class="report-panel report-highlight hidden" id="trialResultsPanel">
+          <div class="report-panel-head"><div><div class="eyebrow">ELIMINATION TRIALS</div><h2>Before, during, after</h2></div><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="12" r="7.5"/><path d="M6 6.5l10 11"/></svg></span></div>
+          <p class="muted" style="margin-top:-6px">Your own deliberate tests — the strongest evidence here, since you know exactly when the exposure changed rather than inferring it from a pattern.</p>
+          <div id="trialResults"></div>
         </section>
 
         <section class="report-panel report-highlight">
@@ -599,6 +621,33 @@
     </form>
   </dialog>
 
+  <dialog id="trialDialog">
+    <form method="dialog" class="crop-shell" onsubmit="return false">
+      <div class="dialog-head">
+        <div>
+          <div class="eyebrow">ELIMINATION TRIAL</div>
+          <h3>Test a suspect ingredient</h3>
+        </div>
+        <button type="button" class="icon-button" id="closeTrialDialog" aria-label="Close">✕</button>
+      </div>
+      <p class="muted" style="margin-top:-6px">Remove it completely for a set period, then reintroduce it deliberately and watch closely — the same method a dietitian would use for a formal elimination/reintroduction test.</p>
+
+      <label>Ingredient or food to eliminate</label>
+      <input id="trialIngredient" placeholder="e.g. Dairy, Gluten, Wheat, Eggs" autocomplete="off" />
+
+      <label>Elimination length (days)</label>
+      <input id="trialEliminationDays" type="number" min="3" max="60" value="14" />
+
+      <label>Reintroduction length (days)</label>
+      <input id="trialReintroDays" type="number" min="1" max="14" value="3" />
+
+      <div class="dialog-actions">
+        <button type="button" class="secondary" id="cancelTrialDialog">Cancel</button>
+        <button type="button" class="primary" id="startTrialBtn">Start trial</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="dayDetailDialog">
     <div class="crop-shell">
       <div class="dialog-head">
@@ -671,7 +720,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
-  <script src="app.js?v=66"></script>
+  <script src="app.js?v=67"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {

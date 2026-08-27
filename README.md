@@ -1,6 +1,6 @@
 # Intolearn
 
-Personal-use prototype. Current build: **v5.1**.
+Personal-use prototype. Current build: **v7.0**.
 
 ## Run it
 
@@ -79,6 +79,18 @@ v5.0 moved off the original light green theme to a dark, editorial "field notebo
 All icons are hand-drawn single-stroke line SVGs using `currentColor` (so they inherit ink/amber automatically on selected/active states) — this includes the 22-item allergen/trigger grid shared by Ingredient Checker and onboarding (v6.2), which was the last remaining spot still using native emoji. The icon set lives in the `ICONS` and `ALLERGEN_ICONS` objects near the top of `app.js`; `renderAllergenGridIcons()` applies the allergen set to both grid instances from one shared map, rather than duplicating 22 SVGs twice in the HTML.
 
 The top bar (v6.7) has three of those same icons (wheat, milk, egg) drifting very faintly behind the wordmark — `opacity:.05`, slow independent CSS keyframe loops, 50-74s per cycle. It's `aria-hidden` and wrapped in `@media (prefers-reduced-motion: no-preference)`, so it's silent to screen readers and simply doesn't animate for anyone with that OS setting on. Since this sits on every screen (unlike the calendar glow or side-effect pulse, which only appear when relevant), it's deliberately the most restrained of the "exception to flat design" moments — meant to be felt more than seen.
+
+## Elimination trials
+
+Everything else in Intolearn watches passively and reports patterns after the fact. This is the one feature that lets you actually *test* a suspect deliberately — the same elimination/reintroduction method a dietitian would run.
+
+**Starting one** (Today → "Start a trial"): name what you're removing, how many days to eliminate it, how many days to reintroduce it afterward (defaults: 14 and 3). From that point on, Today shows a running "Day X of Y — eliminating/reintroducing [ingredient]" status instead of the launch card, computed purely from dates — no daily check-in required.
+
+**Contamination watch**: while a trial is in its eliminating phase, saving a food entry checks the name and ingredients against what you're eliminating. A match doesn't block the save — it just swaps the usual "Entry saved" toast for a heads-up, so an accidental slip doesn't quietly go unnoticed and doesn't need to be treated as a hard rule you might resent.
+
+**Results** (Report → "Elimination Trials", above Possible Connections): for each trial, past or in-progress, a symptomatic-day rate for the week *before* the trial started, during elimination, and during reintroduction. This is placed above the passive Possible Connections panel deliberately — a trial you ran and controlled yourself is stronger evidence than a correlation the app inferred, and the ordering reflects that.
+
+**Honest limits**: one trial's "before" baseline is only 7 days and isn't itself immune to coincidence — a single trial suggests, it doesn't prove. Multiple foods eaten during the same window still aren't disentangled from each other. And like everything else here, this isn't a diagnosis; it's a more structured way of gathering your own evidence, which a clinician can act on more easily than the same evidence would be without something like this to keep it consistent.
 
 ## Supplements & medications
 

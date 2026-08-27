@@ -2,7 +2,7 @@
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 2;
-const APP_VERSION = "6.7";
+const APP_VERSION = "7.0";
 
 // Hand-sketched, single-stroke "field notebook" icon set — every icon uses
 // currentColor so it inherits ink/amber automatically on selected/active
@@ -32,7 +32,8 @@ const ICONS={
   camera:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M4 8.5h3l1.4-2h5.2l1.4 2H20V19H4Z"/><circle cx="12" cy="13.2" r="3.3"/></svg>`,
   clipboard:`<svg viewBox="0 0 24 24" ${SVG_BASE}><rect x="5.5" y="4.5" width="13" height="16" rx="0.5"/><rect x="9" y="3" width="6" height="3" rx="0.5"/><path d="M8.5 11h7M8.5 14.5h7M8.5 18h4.5"/></svg>`,
   tally:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M5 6.5h11M5 12h14M5 17.5h8"/></svg>`,
-  gear:`<svg viewBox="0 0 24 24" ${SVG_BASE}><circle cx="12" cy="12" r="3.2"/><path d="M12 3.5v2.3M12 18.2v2.3M20.5 12h-2.3M5.8 12H3.5M17.7 6.3l-1.6 1.6M7.9 16.1l-1.6 1.6M17.7 17.7l-1.6-1.6M7.9 7.9 6.3 6.3"/></svg>`
+  gear:`<svg viewBox="0 0 24 24" ${SVG_BASE}><circle cx="12" cy="12" r="3.2"/><path d="M12 3.5v2.3M12 18.2v2.3M20.5 12h-2.3M5.8 12H3.5M17.7 6.3l-1.6 1.6M7.9 16.1l-1.6 1.6M17.7 17.7l-1.6-1.6M7.9 7.9 6.3 6.3"/></svg>`,
+  trial:`<svg viewBox="0 0 24 24" ${SVG_BASE}><circle cx="11" cy="12" r="7.5"/><path d="M6 6.5l10 11"/><circle cx="19" cy="4.5" r="1.1" fill="var(--trace)" stroke="none"/></svg>`
 };
 
 // Icons for the 22-item allergen/trigger grid shared by Ingredient Checker
@@ -855,13 +856,14 @@ let cropper = null;
 let pendingPhotoFile = null;
 let cropDestination = "meal";
 
-function blankState(){ return { days:{}, profile:{name:"", photo:"", allergies:[], onboarded:false}, courses:[] }; }
+function blankState(){ return { days:{}, profile:{name:"", photo:"", allergies:[], onboarded:false}, courses:[], trials:[] }; }
 function loadState(){
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY)) || blankState();
     parsed.days ||= {};
     parsed.profile ||= {name:"", photo:"", allergies:[], onboarded:false};
     parsed.courses ||= [];
+    parsed.trials ||= [];
     return parsed;
   }
   catch { return blankState(); }
@@ -925,6 +927,82 @@ function applyCoursesToDay(key){
     changed=true;
   });
   if(changed) saveState();
+}
+
+// --- Elimination/reintroduction trials ---
+// A trial is deliberate, structured evidence — you personally remove a
+// suspect for a set period, then reintroduce it and watch closely. That's
+// a stronger signal than the passive correlation engine can ever produce,
+// since you already know exactly when the exposure changed.
+function trialEliminationEndKey(trial){
+  return dateKeyPlusDays(trial.startDate, trial.eliminationDays-1);
+}
+function trialReintroStartKey(trial){
+  return dateKeyPlusDays(trialEliminationEndKey(trial), 1);
+}
+function trialReintroEndKey(trial){
+  return dateKeyPlusDays(trialEliminationEndKey(trial), trial.reintroDays);
+}
+function trialPhaseOn(trial,key){
+  if(trial.stoppedAt && key>=trial.stoppedAt) return "stopped";
+  if(key<trial.startDate) return null;
+  if(key<=trialEliminationEndKey(trial)) return "eliminating";
+  if(key<=trialReintroEndKey(trial)) return "reintroducing";
+  return "completed";
+}
+function activeTrialToday(){
+  const today=dateKey();
+  return (state.trials||[]).find(t=>["eliminating","reintroducing"].includes(trialPhaseOn(t,today))) || null;
+}
+function trialDayProgress(trial){
+  const today=dateKey();
+  const phase=trialPhaseOn(trial,today);
+  if(phase==="eliminating"){
+    const dayNum=Math.round((new Date(today)-new Date(trial.startDate))/86400000)+1;
+    return {phase, dayNum, totalDays:trial.eliminationDays};
+  }
+  if(phase==="reintroducing"){
+    const reintroStart=trialReintroStartKey(trial);
+    const dayNum=Math.round((new Date(today)-new Date(reintroStart))/86400000)+1;
+    return {phase, dayNum, totalDays:trial.reintroDays};
+  }
+  return {phase, dayNum:null, totalDays:null};
+}
+function checkTrialContamination(entry){
+  const today=dateKey();
+  const activeElim=(state.trials||[]).filter(t=>trialPhaseOn(t,today)==="eliminating");
+  if(!activeElim.length) return null;
+  const hay=[entry.name, ...(entry.ingredients||[])].join(" ").toLowerCase();
+  const hit=activeElim.find(t=>hay.includes(t.ingredient.trim().toLowerCase()));
+  return hit ? hit.ingredient : null;
+}
+function computeTrialResults(trial){
+  const beforeStart=dateKeyPlusDays(trial.startDate,-7);
+  const beforeEnd=dateKeyPlusDays(trial.startDate,-1);
+  const elimEnd=trialEliminationEndKey(trial);
+  const reintroStart=trialReintroStartKey(trial);
+  const reintroEnd=trialReintroEndKey(trial);
+  const today=dateKey();
+  const cap=trial.stoppedAt||today;
+
+  function rateFor(startKey,endKey){
+    let days=0, symptomatic=0, cursor=startKey;
+    while(cursor<=endKey && cursor<=cap && cursor<=today){
+      const day=state.days[cursor];
+      if(day && Object.keys(day.exit||{}).length){
+        days++;
+        if(dayIsSymptomatic(day)) symptomatic++;
+      }
+      cursor=dateKeyPlusDays(cursor,1);
+    }
+    return {days, symptomatic, rate: days ? symptomatic/days : null};
+  }
+
+  return {
+    before: rateFor(beforeStart,beforeEnd),
+    eliminating: rateFor(trial.startDate,elimEnd),
+    reintroducing: rateFor(reintroStart,reintroEnd)
+  };
 }
 
 function ensureDay(key=dateKey()){
@@ -1281,6 +1359,8 @@ function saveMeal(){
     return;
   }
 
+  const contamination=checkTrialContamination(entry);
+
   // Close first on iPhone/Safari so the user gets immediate visual confirmation
   // that the action completed, even if a later render step is delayed.
   closeMealDialog();
@@ -1289,7 +1369,9 @@ function saveMeal(){
   try {
     renderAll();
   } finally {
-    showToast(isNew ? "Entry saved" : "Changes saved");
+    showToast(contamination
+      ? `Heads up — this contains "${contamination}", which you're currently eliminating.`
+      : (isNew ? "Entry saved" : "Changes saved"));
   }
 }
 
@@ -1446,6 +1528,58 @@ function renderActiveFlagBanner(){
   body.innerHTML=flagged.map(s=>
     `<p><strong>${escapeHtml(s.name)}</strong> has been flagged for side effects that can look like a food reaction: ${escapeHtml(titleCase(s.flag.terms.join(", ")))}. Worth weighing in alongside anything you've eaten today.</p>`
   ).join("");
+}
+
+function renderTrialStatus(){
+  const launchCard=document.getElementById("trialLaunchCard");
+  const banner=document.getElementById("activeTrialBanner");
+  if(!launchCard || !banner) return;
+
+  const trial=activeTrialToday();
+  if(!trial){
+    launchCard.classList.remove("hidden");
+    banner.classList.add("hidden");
+    return;
+  }
+  launchCard.classList.add("hidden");
+  banner.classList.remove("hidden");
+
+  const progress=trialDayProgress(trial);
+  if(progress.phase==="eliminating"){
+    document.getElementById("activeTrialTitle").textContent=`Day ${progress.dayNum} of ${progress.totalDays} — eliminating ${trial.ingredient}`;
+    document.getElementById("activeTrialText").textContent=`Avoid ${trial.ingredient} completely. Intolearn will flag it if it shows up in something you log.`;
+  }else if(progress.phase==="reintroducing"){
+    document.getElementById("activeTrialTitle").textContent=`Day ${progress.dayNum} of ${progress.totalDays} — reintroducing ${trial.ingredient}`;
+    document.getElementById("activeTrialText").textContent=`Deliberately eat ${trial.ingredient} again and watch closely for symptoms over the next few days.`;
+  }
+}
+
+function renderTrialResults(){
+  const panel=document.getElementById("trialResultsPanel");
+  const box=document.getElementById("trialResults");
+  if(!panel || !box) return;
+  const trials=state.trials||[];
+  if(!trials.length){
+    panel.classList.add("hidden");
+    box.innerHTML="";
+    return;
+  }
+  panel.classList.remove("hidden");
+
+  const fmt=r => r.days ? `${Math.round(r.rate*100)}% (${r.symptomatic}/${r.days} days)` : "not enough data yet";
+  box.innerHTML=trials.slice().reverse().map(t=>{
+    const r=computeTrialResults(t);
+    const phase=trialPhaseOn(t,dateKey());
+    const phaseLabel = phase==="eliminating" ? "In progress — eliminating"
+      : phase==="reintroducing" ? "In progress — reintroducing"
+      : phase==="stopped" ? "Stopped early"
+      : "Completed";
+    return `
+      <div class="connection-card">
+        <div class="connection-title"><strong>${escapeHtml(t.ingredient)}</strong><span class="connection-score">${escapeHtml(phaseLabel)}</span></div>
+        <p>Before: ${fmt(r.before)} symptomatic · Eliminating: ${fmt(r.eliminating)} · Reintroducing: ${fmt(r.reintroducing)}</p>
+      </div>`;
+  }).join("");
 }
 
 function renderSupplements(){
@@ -1849,6 +1983,63 @@ function closeCheckerDialog(){
   try{ if(d.open) d.close(); }catch(e){}
   if(d.hasAttribute("open")) d.removeAttribute("open");
 }
+
+// --- Elimination trial dialog ---
+function closeTrialDialog(){
+  const dialog=document.getElementById("trialDialog");
+  if(!dialog) return;
+  try{ if(dialog.open) dialog.close(); }catch(err){ console.warn("Dialog close failed",err); }
+  if(dialog.hasAttribute("open")) dialog.removeAttribute("open");
+}
+document.getElementById("openTrialDialogBtn").addEventListener("click", ()=>{
+  document.getElementById("trialIngredient").value="";
+  document.getElementById("trialIngredient").classList.remove("field-error");
+  document.getElementById("trialEliminationDays").value="14";
+  document.getElementById("trialReintroDays").value="3";
+  document.getElementById("trialDialog").showModal();
+});
+document.getElementById("cancelTrialDialog").addEventListener("click", closeTrialDialog);
+document.getElementById("closeTrialDialog").addEventListener("click", closeTrialDialog);
+document.getElementById("trialDialog").addEventListener("cancel", e=>{
+  e.preventDefault();
+  closeTrialDialog();
+});
+document.getElementById("startTrialBtn").addEventListener("click", ()=>{
+  const ingredientEl=document.getElementById("trialIngredient");
+  const ingredient=ingredientEl.value.trim();
+  if(!ingredient){
+    ingredientEl.classList.add("field-error");
+    ingredientEl.focus();
+    showToast("Please enter what you're eliminating.");
+    return;
+  }
+  ingredientEl.classList.remove("field-error");
+  const eliminationDays=Math.max(1, Number(document.getElementById("trialEliminationDays").value)||14);
+  const reintroDays=Math.max(1, Number(document.getElementById("trialReintroDays").value)||3);
+
+  state.trials.push({
+    id:makeId(), ingredient, startDate:dateKey(),
+    eliminationDays, reintroDays, stoppedAt:null,
+    createdAt:new Date().toISOString()
+  });
+
+  if(saveState()){
+    closeTrialDialog();
+    renderAll();
+    showToast(`Trial started — eliminating ${ingredient} for ${eliminationDays} days`);
+  }else{
+    state.trials.pop();
+  }
+});
+document.getElementById("stopTrialBtn").addEventListener("click", ()=>{
+  const trial=activeTrialToday();
+  if(!trial) return;
+  if(!confirm(`Stop the ${trial.ingredient} trial now? Everything logged so far stays — this just ends automatic phase tracking.`)) return;
+  trial.stoppedAt=dateKey();
+  saveState();
+  renderAll();
+  showToast("Trial stopped");
+});
 document.getElementById("closeCheckerBtn").addEventListener("click",closeCheckerDialog);
 document.getElementById("checkerDialog").addEventListener("cancel",e=>{e.preventDefault();closeCheckerDialog();});
 document.querySelectorAll("#checkerTriggers button").forEach(btn=>{
@@ -2295,6 +2486,8 @@ function renderReport(){
     document.getElementById("knownSuspects").innerHTML="";
   }
 
+  renderTrialResults();
+
   const connections=ranked.slice(0,5);
   document.getElementById("reportConnections").innerHTML=connections.length?connections.map(x=>`
     <div class="connection-card">
@@ -2533,7 +2726,7 @@ function renderTodayEyebrow(){
 }
 
 function renderAll(){
-  const jobs=[renderMeals,renderExit,renderWeek,renderMonth,renderTrends,renderReport,renderTodayEyebrow,renderSupplements,renderCourses,applyCollapseState,renderActiveFlagBanner];
+  const jobs=[renderMeals,renderExit,renderWeek,renderMonth,renderTrends,renderReport,renderTodayEyebrow,renderSupplements,renderCourses,applyCollapseState,renderActiveFlagBanner,renderTrialStatus];
   jobs.forEach(fn=>{
     try{ fn(); }
     catch(err){ console.error(fn.name+" failed",err); }
