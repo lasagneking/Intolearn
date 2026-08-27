@@ -36,6 +36,16 @@ Both the Report's "Possible connections" and the Trends tab compare ingredients 
 
 This still isn't a diagnosis — it's association within your own logged data, and confounding (multiple ingredients eaten the same day) isn't controlled for. The more consistently you log, the more the numbers mean.
 
+## Portion size & cooking method
+
+Every food entry now also captures a rough **portion size** (Small/Medium/Large, defaulting to Medium), an optional free-text **quantity** (e.g. "2 slices", "1 bowl" — for when a count matters more than relative size), and an optional **cooking method** (raw, boiled, roasted, fried, air-fried, etc.).
+
+These aren't just descriptive — they're clinically relevant and worth a medical professional's attention:
+- Most food *intolerances* (as opposed to true allergies) are dose-dependent — a splash of milk versus a bowl of cereal can be the difference between fine and symptomatic. Without portion context, "had milk, had symptoms" and "had milk, no symptoms" look identical in the data.
+- Cooking method matters for conditions like Oral Allergy Syndrome (pollen-food cross-reactivity), where many people tolerate a cooked version of a fruit/vegetable that raw would trigger symptoms — an apparent inconsistency in a diary ("apple was fine Tuesday, wasn't Thursday") can turn out to be fully explained by raw vs. cooked.
+
+"Large portion" and each cooking method also feed into the same correlation engine used for ingredients (Report → Possible Connections, Trends) — so "large portions" or "fried food" specifically can surface as their own pattern, separate from the ingredient itself.
+
 ## Data & privacy
 
 Whether each Today section (Breakfast, Lunch, Dinner, Snacks & Drinks, Supplements & meds) is collapsed or expanded is a display preference, stored under its own `localStorage` key (`intolearn_collapse_v1`) separate from your diary — so it doesn't clutter JSON exports or feed into the correlation engine.

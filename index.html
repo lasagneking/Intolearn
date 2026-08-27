@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,500;1,9..144,600&family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Petit+Formal+Script&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css" />
-  <link rel="stylesheet" href="styles.css?v=62" />
+  <link rel="stylesheet" href="styles.css?v=63" />
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Intolearn">
@@ -293,6 +293,34 @@
 
       <label>Ingredients</label>
       <textarea id="ingredients" rows="4" placeholder="Type ingredients, one per line or comma separated"></textarea>
+
+      <label>Portion size</label>
+      <div class="choice-row" data-choice="foodPortion">
+        <button type="button" data-value="Small">Small</button>
+        <button type="button" data-value="Medium">Medium</button>
+        <button type="button" data-value="Large">Large</button>
+      </div>
+
+      <label>Quantity (optional)</label>
+      <input id="foodQuantity" placeholder="e.g. 2 slices, 1 bowl, a handful" autocomplete="off" />
+
+      <label>Cooking method (optional)</label>
+      <select id="foodCookingMethod">
+        <option value="">Not specified</option>
+        <option value="Raw">Raw</option>
+        <option value="Boiled">Boiled</option>
+        <option value="Steamed">Steamed</option>
+        <option value="Baked">Baked</option>
+        <option value="Roasted">Roasted</option>
+        <option value="Grilled">Grilled</option>
+        <option value="Fried">Fried (pan)</option>
+        <option value="Deep-fried">Deep-fried</option>
+        <option value="Air-fried">Air-fried</option>
+        <option value="Toasted">Toasted</option>
+        <option value="Microwaved">Microwaved</option>
+        <option value="Slow-cooked">Slow-cooked</option>
+        <option value="Other">Other</option>
+      </select>
 
       <div class="scan-panel">
         <div>
@@ -614,7 +642,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
-  <script src="app.js?v=62"></script>
+  <script src="app.js?v=63"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {

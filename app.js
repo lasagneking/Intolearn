@@ -2,7 +2,7 @@
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 2;
-const APP_VERSION = "6.3";
+const APP_VERSION = "6.4";
 
 // Hand-sketched, single-stroke "field notebook" icon set — every icon uses
 // currentColor so it inherits ink/amber automatically on selected/active
@@ -994,7 +994,7 @@ function renderMeals(){
             <div class="food-entry">
               <div class="food-entry-main">
                 <strong>${escapeHtml(it.name)}</strong>
-                <small>${it.time || ""}${it.notes ? " · "+escapeHtml(it.notes):""}</small>
+                <small>${[it.time, it.portionSize?it.portionSize+" portion":null, it.quantity||null, it.cookingMethod||null].filter(Boolean).join(" · ")}${it.notes ? " · "+escapeHtml(it.notes):""}</small>
                 <div class="ingredient-tags">${(it.ingredients||[]).slice(0,8).map(x=>`<span class="ingredient-tag">${escapeHtml(x)}</span>`).join("")}</div>
               </div>
               <div class="entry-actions">
@@ -1051,6 +1051,9 @@ function applyHistoryTemplate(item){
   document.getElementById("foodName").value=item.name||"";
   document.getElementById("foodName").classList.remove("field-error");
   document.getElementById("ingredients").value=(item.ingredients||[]).join("\n");
+  document.getElementById("foodQuantity").value=item.quantity||"";
+  document.getElementById("foodCookingMethod").value=item.cookingMethod||"";
+  document.querySelectorAll('[data-choice="foodPortion"] button').forEach(b=>b.classList.toggle("selected", b.dataset.value===(item.portionSize||"Medium")));
 
   photoData=item.photo||"";
   document.getElementById("photoPreview").innerHTML=photoData
@@ -1131,6 +1134,10 @@ function resetMealForm(){
   document.getElementById("ingredients").value="";
   document.getElementById("foodNotes").value="";
   document.getElementById("foodTime").value=new Date().toTimeString().slice(0,5);
+  document.getElementById("foodQuantity").value="";
+  document.getElementById("foodCookingMethod").value="";
+  document.querySelectorAll('[data-choice="foodPortion"] button').forEach(b=>b.classList.remove("selected"));
+  document.querySelector('[data-choice="foodPortion"] button[data-value="Medium"]').classList.add("selected");
   const camInput=document.getElementById("ingredientCamera");
   const libInput=document.getElementById("ingredientLibrary");
   if(camInput) camInput.value="";
@@ -1172,6 +1179,9 @@ function openMeal(meal, index=null, entryDateKey=null){
     document.getElementById("foodTime").value=item.time||"";
     document.getElementById("ingredients").value=(item.ingredients||[]).join("\n");
     document.getElementById("foodNotes").value=item.notes||"";
+    document.getElementById("foodQuantity").value=item.quantity||"";
+    document.getElementById("foodCookingMethod").value=item.cookingMethod||"";
+    document.querySelectorAll('[data-choice="foodPortion"] button').forEach(b=>b.classList.toggle("selected", b.dataset.value===(item.portionSize||"Medium")));
     photoData=item.photo||"";
     if(photoData) document.getElementById("photoPreview").innerHTML=`<img src="${photoData}" alt="${escapeHtml(item.name||"Product")}">`;
     if(item.barcode){
@@ -1234,6 +1244,9 @@ function saveMeal(){
     ingredients:parseIngredients(document.getElementById("ingredients").value),
     families:detectFamilies(document.getElementById("ingredients").value),
     allergens:mealBarcodeData ? (mealBarcodeData.allergens||[]) : detectUKAllergens(document.getElementById("ingredients").value),
+    portionSize:document.querySelector('[data-choice="foodPortion"] button.selected')?.dataset.value || "Medium",
+    quantity:document.getElementById("foodQuantity").value.trim(),
+    cookingMethod:document.getElementById("foodCookingMethod").value,
     notes:document.getElementById("foodNotes").value.trim(),
     photo:photoData,
     barcode:mealBarcodeData?.barcode||"",
@@ -1624,6 +1637,12 @@ document.querySelectorAll('[data-choice="supplementFrequency"] button').forEach(
 document.querySelectorAll('[data-choice="supplementKind"] button').forEach(btn=>{
   btn.addEventListener("click", ()=>{
     document.querySelectorAll('[data-choice="supplementKind"] button').forEach(b=>b.classList.remove("selected"));
+    btn.classList.add("selected");
+  });
+});
+document.querySelectorAll('[data-choice="foodPortion"] button').forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll('[data-choice="foodPortion"] button').forEach(b=>b.classList.remove("selected"));
     btn.classList.add("selected");
   });
 });
@@ -2140,7 +2159,11 @@ function renderReport(){
 
   const {statsRaw, ranked, baseline, consideredDays}=buildAssociationStats(keys, day=>{
     const tags=new Set();
-    mealTypes.forEach(m=>(day.meals?.[m.key]||[]).forEach(x=>reportMealIngredients(x).forEach(t=>tags.add(t))));
+    mealTypes.forEach(m=>(day.meals?.[m.key]||[]).forEach(x=>{
+      reportMealIngredients(x).forEach(t=>tags.add(t));
+      if(x.portionSize==="Large") tags.add("large portion");
+      if(x.cookingMethod) tags.add("cooking: "+x.cookingMethod.toLowerCase());
+    }));
     (day.supplements||[]).forEach(s=>{ if(s.name) tags.add(s.name.trim().toLowerCase()); });
     return tags;
   });
@@ -2206,7 +2229,11 @@ function renderTrends(){
   const allKeys=Object.keys(state.days||{});
   const {ranked, baseline, consideredDays}=buildAssociationStats(allKeys, day=>{
     const ingredients=new Set();
-    mealTypes.forEach(m=>(day.meals?.[m.key]||[]).forEach(x=>(x.ingredients||[]).forEach(i=>ingredients.add(i.toLowerCase()))));
+    mealTypes.forEach(m=>(day.meals?.[m.key]||[]).forEach(x=>{
+      (x.ingredients||[]).forEach(i=>ingredients.add(i.toLowerCase()));
+      if(x.portionSize==="Large") ingredients.add("large portion");
+      if(x.cookingMethod) ingredients.add("cooking: "+x.cookingMethod.toLowerCase());
+    }));
     (day.supplements||[]).forEach(s=>{ if(s.name) ingredients.add(s.name.trim().toLowerCase()); });
     return ingredients;
   });
