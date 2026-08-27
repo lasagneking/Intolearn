@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,500;1,9..144,600&family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Petit+Formal+Script&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css" />
-  <link rel="stylesheet" href="styles.css?v=67" />
+  <link rel="stylesheet" href="styles.css?v=68" />
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Intolearn">
@@ -615,9 +615,37 @@
       <div class="profile-summary" id="settingsProfileSummary"></div>
       <button type="button" class="secondary wide" id="editProfileBtn">Edit profile</button>
 
+      <p class="muted" style="margin-top:20px">A clean, printable diary formatted for a GP or dietitian appointment.</p>
+      <button type="button" class="secondary wide" id="openPrintDiaryBtn">Print food diary for a doctor</button>
+
       <p class="muted" style="margin-top:20px">Your diary is stored only in this browser on this device.</p>
       <button type="button" class="secondary wide" id="exportDataBtn">Export diary as JSON</button>
       <button type="button" class="danger wide" id="clearDataBtn">Clear all local data</button>
+    </form>
+  </dialog>
+
+  <dialog id="printDiaryDialog">
+    <form method="dialog" class="crop-shell" onsubmit="return false">
+      <div class="dialog-head">
+        <div>
+          <div class="eyebrow">DOCTOR EXPORT</div>
+          <h3>Print food diary</h3>
+        </div>
+        <button type="button" class="icon-button" id="closePrintDiaryDialog" aria-label="Close">✕</button>
+      </div>
+      <p class="muted" style="margin-top:-6px">Includes what you ate and drank (with quantity and cooking method), supplements/meds taken, and your Exit Interview summary for each day — the same structure most food-diary request forms ask for.</p>
+
+      <label>How many days back</label>
+      <div class="choice-row" data-choice="printDiaryDays">
+        <button type="button" data-value="3">3 days</button>
+        <button type="button" data-value="7">7 days</button>
+        <button type="button" data-value="14">14 days</button>
+      </div>
+
+      <div class="dialog-actions">
+        <button type="button" class="secondary" id="cancelPrintDiaryDialog">Cancel</button>
+        <button type="button" class="primary" id="generatePrintDiaryBtn">Generate &amp; print</button>
+      </div>
     </form>
   </dialog>
 
@@ -717,10 +745,11 @@
   </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="printDiaryContainer"></div>
   <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
-  <script src="app.js?v=67"></script>
+  <script src="app.js?v=68"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {

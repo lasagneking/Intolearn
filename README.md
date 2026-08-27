@@ -1,6 +1,6 @@
 # Intolearn
 
-Personal-use prototype. Current build: **v7.0**.
+Personal-use prototype. Current build: **v7.1**.
 
 ## Run it
 
@@ -79,6 +79,14 @@ v5.0 moved off the original light green theme to a dark, editorial "field notebo
 All icons are hand-drawn single-stroke line SVGs using `currentColor` (so they inherit ink/amber automatically on selected/active states) — this includes the 22-item allergen/trigger grid shared by Ingredient Checker and onboarding (v6.2), which was the last remaining spot still using native emoji. The icon set lives in the `ICONS` and `ALLERGEN_ICONS` objects near the top of `app.js`; `renderAllergenGridIcons()` applies the allergen set to both grid instances from one shared map, rather than duplicating 22 SVGs twice in the HTML.
 
 The top bar (v6.7) has three of those same icons (wheat, milk, egg) drifting very faintly behind the wordmark — `opacity:.05`, slow independent CSS keyframe loops, 50-74s per cycle. It's `aria-hidden` and wrapped in `@media (prefers-reduced-motion: no-preference)`, so it's silent to screen readers and simply doesn't animate for anyone with that OS setting on. Since this sits on every screen (unlike the calendar glow or side-effect pulse, which only appear when relevant), it's deliberately the most restrained of the "exception to flat design" moments — meant to be felt more than seen.
+
+## Printable food diary for a doctor (Settings → "Print food diary for a doctor")
+
+Generates a clean, light-background printable page covering the last 3/7/14 days: for each day, a table of everything eaten and drunk (time, meal, food, quantity, cooking method, notes), plus supplements/meds taken and an Exit Interview summary. Structured to match what a typical NHS dietetic food-diary request form asks for — time-stamped entries, household-measure quantities, and how food was prepared, though of course actual requirements vary by service, so it's always worth checking what your specific appointment letter asks for.
+
+It uses the browser's native print (Share → Print → Save to PDF on iOS), not a generated PDF file — no extra library needed, and it works offline. This is the one screen in the app that deliberately breaks from the dark theme: black text on white, since that's what actually prints and photocopies well.
+
+**Gaps worth knowing about**: some food-diary request forms (particularly for weight-management services) also ask for hunger/fullness ratings, why you were eating, mood, and physical activity/exercise — Intolearn doesn't have dedicated fields for any of those. Mood is partially covered by Exit Interview's "how do you feel," but hunger/fullness and exercise aren't tracked at all currently. If your own appointment specifically asks for those, the per-meal Notes field is a reasonable place to jot them freehand — they'll show up in the "Notes" column of the printout.
 
 ## Elimination trials
 
