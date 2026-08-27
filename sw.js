@@ -1,7 +1,7 @@
 // Intolearn service worker
 // Bump CACHE_VERSION whenever app.js/styles.css/index.html change so the
 // new files actually get picked up instead of being served stale forever.
-const CACHE_VERSION = "intolearn-v15";
+const CACHE_VERSION = "intolearn-v16";
 const APP_SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -19,10 +19,16 @@ const APP_SHELL_URLS = [
   "./apple-touch-icon.png"
 ];
 
-// Third-party libraries loaded from jsdelivr. Tesseract also fetches
-// worker/wasm/language-data files at runtime from the same CDN — those
-// aren't known ahead of time, so they're handled by the runtime
-// cache-first rule below rather than precached here.
+// Third-party libraries loaded from jsdelivr, plus the Google Fonts
+// stylesheet. Deliberately NOT included here: Tesseract's own runtime-
+// fetched worker script, WASM binary, and language-data files. Those used
+// to be caught by a blanket "any request to this CDN origin" rule below,
+// and that turned out to be a real bug — if one of those ever got cached
+// in a partial or stale state, Tesseract would fail silently on every
+// single scan afterward, regardless of photo quality, with no obvious
+// cause. They're left completely unintercepted now (normal network +
+// the browser's own HTTP cache), which costs full offline OCR support
+// but means a scan can't be broken by our own caching layer.
 const CDN_SHELL_URLS = [
   "https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css",
   "https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js",
@@ -30,7 +36,6 @@ const CDN_SHELL_URLS = [
   "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js",
   "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,500;1,9..144,600&family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Petit+Formal+Script&display=swap"
 ];
-const CDN_ORIGINS = ["https://cdn.jsdelivr.net", "https://fonts.googleapis.com", "https://fonts.gstatic.com"];
 
 self.addEventListener("install", event => {
   event.waitUntil((async () => {
@@ -69,8 +74,8 @@ self.addEventListener("activate", event => {
   })());
 });
 
-function isCDNRequest(url) {
-  return CDN_ORIGINS.includes(url.origin);
+function isKnownCDNShellUrl(requestUrl) {
+  return CDN_SHELL_URLS.includes(requestUrl);
 }
 
 self.addEventListener("fetch", event => {
@@ -96,23 +101,23 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // CDN libraries (Quagga, Tesseract core + its runtime-fetched worker/
-  // wasm/lang-data files, CropperJS): cache-first, so once a file has
-  // loaded once, scanning/cropping keeps working offline.
-  if (isCDNRequest(url)) {
+  // Known top-level CDN scripts/stylesheets only: cache-first, so once
+  // loaded once these keep working offline. Everything else these
+  // libraries fetch on their own (Tesseract's worker/wasm/language data,
+  // actual font binary files, Open Food Facts API calls) is deliberately
+  // left alone below — no respondWith, straight to the network.
+  if (isKnownCDNShellUrl(request.url)) {
     event.respondWith((async () => {
       const cache = await caches.open(RUNTIME_CACHE);
       const cached = await cache.match(request);
       if (cached) return cached;
       try {
         const res = await fetch(request, { mode: "cors" });
-        if (res && (res.ok || res.type === "opaque")) {
+        if (res && res.ok) {
           cache.put(request, res.clone());
         }
         return res;
       } catch (err) {
-        // No cached copy and no network — let it fail; the app already
-        // shows a friendly "could not load" message for this case.
         throw err;
       }
     })());
