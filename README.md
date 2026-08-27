@@ -46,6 +46,12 @@ These aren't just descriptive — they're clinically relevant and worth a medica
 
 "Large portion" and each cooking method also feed into the same correlation engine used for ingredients (Report → Possible Connections, Trends) — so "large portions" or "fried food" specifically can surface as their own pattern, separate from the ingredient itself.
 
+## Month view
+
+The calendar week now starts Monday (UK convention) with day-of-week headers above the grid. Good/rough/mixed days carry a soft glow matching their colour, on top of the existing background tint and border — a deliberate exception to the flat/no-glow system, same reasoning as the pulsing side-effect flags: these are the two places in the app meant to catch your eye at a glance rather than blend in.
+
+Tapping any day opens a read-only breakdown (Exit Interview summary, each meal, supplements/meds logged that day) — and tapping any entry within that breakdown jumps straight into its full edit dialog, the same one used from Today.
+
 ## Data & privacy
 
 Whether each Today section (Breakfast, Lunch, Dinner, Snacks & Drinks, Supplements & meds) is collapsed or expanded is a display preference, stored under its own `localStorage` key (`intolearn_collapse_v1`) separate from your diary — so it doesn't clutter JSON exports or feed into the correlation engine.

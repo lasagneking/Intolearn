@@ -2,7 +2,7 @@
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 2;
-const APP_VERSION = "6.4";
+const APP_VERSION = "6.5";
 
 // Hand-sketched, single-stroke "field notebook" icon set — every icon uses
 // currentColor so it inherits ink/amber automatically on selected/active
@@ -1952,7 +1952,8 @@ function monthDates(){
   const now=new Date(); const y=now.getFullYear(), m=now.getMonth();
   const first=new Date(y,m,1), last=new Date(y,m+1,0);
   const out=[];
-  for(let i=0;i<first.getDay();i++) out.push(null);
+  const mondayFirstOffset=(first.getDay()+6)%7; // Sun=0..Sat=6 -> Mon=0..Sun=6
+  for(let i=0;i<mondayFirstOffset;i++) out.push(null);
   for(let d=1;d<=last.getDate();d++) out.push(new Date(y,m,d));
   return out;
 }
@@ -1970,9 +1971,13 @@ function renderMonth(){
       const dates=monthDates();
       calendar.innerHTML=dates.map(d=>{
         if(!d) return `<div></div>`;
-        const day=state.days?.[dateKey(d)];
-        return `<div class="cal-day ${dayTone(day)}"><strong>${d.getDate()}</strong><span>${day? "•":""}</span></div>`;
+        const key=dateKey(d);
+        const day=state.days?.[key];
+        return `<button type="button" class="cal-day ${dayTone(day)}" data-key="${key}"><strong>${d.getDate()}</strong><span>${day? "•":""}</span></button>`;
       }).join("");
+      calendar.querySelectorAll(".cal-day[data-key]").forEach(btn=>{
+        btn.addEventListener("click", ()=>openDayDetail(btn.dataset.key));
+      });
     }catch(err){
       console.error("Month calendar render failed",err);
       calendar.innerHTML=`<div class="muted" style="grid-column:1/-1;padding:12px">Calendar could not be rendered.</div>`;
@@ -1980,6 +1985,85 @@ function renderMonth(){
   }
   renderMonthResults();
 }
+
+function closeDayDetailDialog(){
+  const dialog=document.getElementById("dayDetailDialog");
+  if(!dialog) return;
+  try{ if(dialog.open) dialog.close(); }catch(err){ console.warn("Dialog close failed",err); }
+  if(dialog.hasAttribute("open")) dialog.removeAttribute("open");
+}
+
+function openDayDetail(key){
+  const day=state.days?.[key];
+  const dateObj=new Date(key+"T12:00:00");
+  document.getElementById("dayDetailTitle").textContent=
+    dateObj.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"});
+
+  const body=document.getElementById("dayDetailBody");
+  const sections=[];
+
+  if(day){
+    const ex=day.exit||{};
+    if(Object.keys(ex).length){
+      sections.push(`
+        <div class="day-detail-section">
+          <div class="eyebrow">EXIT INTERVIEW</div>
+          <p>${[ex.feeling, ex.consistency, ex.urgency, ex.frequency?ex.frequency+" visit"+(ex.frequency==="1"?"":"s"):null].filter(Boolean).join(" · ") || "Logged, no details set"}</p>
+          ${(ex.symptoms||[]).length ? `<div class="ingredient-tags">${ex.symptoms.map(s=>`<span class="allergen-tag">${escapeHtml(s)}</span>`).join("")}</div>` : ""}
+          ${ex.notes ? `<p class="muted">${escapeHtml(ex.notes)}</p>` : ""}
+        </div>`);
+    }
+
+    mealTypes.forEach(m=>{
+      const items=day.meals?.[m.key]||[];
+      if(!items.length) return;
+      sections.push(`
+        <div class="day-detail-section">
+          <div class="eyebrow">${m.label.toUpperCase()}</div>
+          ${items.map((it,i)=>`
+            <button type="button" class="day-detail-entry" data-meal="${m.key}" data-index="${i}">
+              <strong>${escapeHtml(it.name)}</strong>
+              <small>${[it.time, it.portionSize?it.portionSize+" portion":null, it.quantity||null, it.cookingMethod||null].filter(Boolean).join(" · ")}</small>
+            </button>`).join("")}
+        </div>`);
+    });
+
+    const sups=day.supplements||[];
+    if(sups.length){
+      sections.push(`
+        <div class="day-detail-section">
+          <div class="eyebrow">SUPPLEMENTS & MEDS</div>
+          ${sups.map((s,i)=>`
+            <button type="button" class="day-detail-entry" data-supp-index="${i}">
+              <strong>${escapeHtml(s.name)}</strong>
+              <small>${[s.kind==="prescription"?"Prescription/OTC":"Supplement", s.dose||null, s.time||null].filter(Boolean).join(" · ")}</small>
+            </button>`).join("")}
+        </div>`);
+    }
+  }
+
+  body.innerHTML = sections.length ? sections.join("") : `<p class="muted">Nothing logged this day.</p>`;
+
+  body.querySelectorAll(".day-detail-entry[data-meal]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      closeDayDetailDialog();
+      openMeal(btn.dataset.meal, Number(btn.dataset.index), key);
+    });
+  });
+  body.querySelectorAll(".day-detail-entry[data-supp-index]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      closeDayDetailDialog();
+      openSupplement(Number(btn.dataset.suppIndex), key);
+    });
+  });
+
+  document.getElementById("dayDetailDialog").showModal();
+}
+document.getElementById("closeDayDetailBtn").addEventListener("click", closeDayDetailDialog);
+document.getElementById("dayDetailDialog").addEventListener("cancel", e=>{
+  e.preventDefault();
+  closeDayDetailDialog();
+});
 
 function getMealSearchText(x,day){
   const rawIngredients=(x?.ingredients||[]).join(" ");

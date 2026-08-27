@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,500;1,9..144,600&family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Petit+Formal+Script&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css" />
-  <link rel="stylesheet" href="styles.css?v=63" />
+  <link rel="stylesheet" href="styles.css?v=64" />
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Intolearn">
@@ -179,6 +179,7 @@
         <div class="filter-bar">
           <input id="monthFilter" placeholder="Filter by food, ingredient or symptom" />
         </div>
+        <div class="calendar-weekdays"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
         <div class="calendar-grid" id="monthCalendar"></div>
         <div class="card" id="monthResultsCard">
           <h3>Filtered entries</h3>
@@ -583,6 +584,19 @@
     </form>
   </dialog>
 
+  <dialog id="dayDetailDialog">
+    <div class="crop-shell">
+      <div class="dialog-head">
+        <div>
+          <div class="eyebrow">DAY</div>
+          <h2 id="dayDetailTitle">Day detail</h2>
+        </div>
+        <button type="button" class="icon-button" id="closeDayDetailBtn" aria-label="Close">✕</button>
+      </div>
+      <div id="dayDetailBody"></div>
+    </div>
+  </dialog>
+
   <dialog id="onboardingDialog">
     <form method="dialog" class="crop-shell" onsubmit="return false">
       <div class="dialog-head">
@@ -642,7 +656,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
-  <script src="app.js?v=63"></script>
+  <script src="app.js?v=64"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
