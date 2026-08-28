@@ -2,7 +2,7 @@
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 2;
-const APP_VERSION = "7.5";
+const APP_VERSION = "7.6";
 
 // Hand-sketched, single-stroke "field notebook" icon set — every icon uses
 // currentColor so it inherits ink/amber automatically on selected/active
@@ -2698,17 +2698,128 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
 
 document.getElementById("settingsBtn").onclick=()=>{
   renderSettingsProfile();
+  renderLastBackupText();
   document.getElementById("settingsDialog").showModal();
 };
 document.getElementById("editProfileBtn").onclick=()=>{
   document.getElementById("settingsDialog").close();
   openOnboarding(true);
 };
-document.getElementById("exportDataBtn").onclick=()=>{
-  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="intolearn-diary.json"; a.click();
+
+// --- Backup: real restore, native share-to-Files/iCloud where supported,
+// and a quiet reminder when it's been a while. An export nobody can ever
+// restore from isn't really a backup, so this covers both directions. ---
+const BACKUP_KEY="intolearn_last_backup_v1";
+function getLastBackupAt(){
+  try{ return localStorage.getItem(BACKUP_KEY); }catch{ return null; }
+}
+function setLastBackupAt(){
+  try{ localStorage.setItem(BACKUP_KEY, new Date().toISOString()); }catch(err){ console.warn("Could not record backup time",err); }
+}
+function daysSinceBackup(){
+  const last=getLastBackupAt();
+  if(!last) return Infinity;
+  return Math.floor((Date.now()-new Date(last).getTime())/86400000);
+}
+function renderLastBackupText(){
+  const el=document.getElementById("lastBackupText");
+  if(!el) return;
+  const days=daysSinceBackup();
+  el.textContent = days===Infinity ? "Never backed up."
+    : days===0 ? "Last backed up today."
+    : days===1 ? "Last backed up yesterday."
+    : `Last backed up ${days} days ago.`;
+}
+function renderBackupReminder(){
+  const box=document.getElementById("backupReminderBanner");
+  const text=document.getElementById("backupReminderText");
+  if(!box || !text) return;
+  const loggedDays=Object.keys(state.days||{}).length;
+  const days=daysSinceBackup();
+  if(loggedDays<5 || days<21){
+    box.classList.add("hidden");
+    return;
+  }
+  box.classList.remove("hidden");
+  text.textContent = getLastBackupAt()
+    ? `It's been ${days} days since your last backup, and everything here lives only in this browser — nothing is synced anywhere else.`
+    : `You've logged ${loggedDays} days and never backed up. Everything here lives only in this browser — clearing your cache or switching devices would lose it all.`;
+}
+
+async function backupDiary(){
+  const json=JSON.stringify(state,null,2);
+  const filename=`intolearn-backup-${dateKey()}.json`;
+  const blob=new Blob([json],{type:"application/json"});
+
+  let file=null;
+  try{ file=new File([blob],filename,{type:"application/json"}); }catch(err){ file=null; }
+
+  if(file && navigator.canShare && navigator.canShare({files:[file]})){
+    try{
+      await navigator.share({files:[file], title:"Intolearn backup"});
+      setLastBackupAt();
+      renderLastBackupText();
+      renderBackupReminder();
+      showToast("Backup shared");
+      return;
+    }catch(err){
+      if(err?.name==="AbortError") return; // user cancelled the share sheet — don't fall through
+      console.warn("Share failed, falling back to direct download",err);
+    }
+  }
+
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=filename;
+  a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-};
+  setLastBackupAt();
+  renderLastBackupText();
+  renderBackupReminder();
+  showToast("Backup downloaded");
+}
+document.getElementById("exportDataBtn").onclick=backupDiary;
+document.getElementById("backupReminderBtn").onclick=backupDiary;
+
+document.getElementById("restoreDataBtn").addEventListener("click", ()=>{
+  document.getElementById("restoreFileInput").click();
+});
+document.getElementById("restoreFileInput").addEventListener("change", e=>{
+  const file=e.target.files?.[0];
+  e.target.value="";
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    let parsed;
+    try{ parsed=JSON.parse(reader.result); }
+    catch(err){ showToast("That file doesn't look like a valid backup."); return; }
+    if(!parsed || typeof parsed!=="object" || typeof parsed.days!=="object" || parsed.days===null){
+      showToast("That file doesn't look like an Intolearn backup.");
+      return;
+    }
+    const incomingDays=Object.keys(parsed.days).length;
+    const currentDays=Object.keys(state.days||{}).length;
+    if(!confirm(`This backup contains ${incomingDays} logged day${incomingDays===1?"":"s"}. Restoring will REPLACE everything currently in this browser (${currentDays} day${currentDays===1?"":"s"}) and can't be undone. Continue?`)) return;
+
+    parsed.profile ||= {name:"",photo:"",allergies:[],onboarded:false};
+    parsed.courses ||= [];
+    parsed.trials ||= [];
+    state=parsed;
+    if(saveState()){
+      ensureDay();
+      renderAll();
+      renderAvatar();
+      renderGreeting();
+      renderLastBackupText();
+      showToast("Backup restored");
+      document.getElementById("settingsDialog").close();
+    }else{
+      showToast("Could not restore — storage write failed.");
+    }
+  };
+  reader.readAsText(file);
+});
+
 document.getElementById("clearDataBtn").onclick=()=>{
   if(confirm("Clear all Intolearn data stored in this browser?")){
     localStorage.removeItem(STORAGE_KEY); state=blankState(); ensureDay(); renderAll();
@@ -2832,7 +2943,7 @@ function renderTodayEyebrow(){
 }
 
 function renderAll(){
-  const jobs=[renderMeals,renderExit,renderWeek,renderMonth,renderTrends,renderReport,renderTodayEyebrow,renderSupplements,renderCourses,applyCollapseState,renderActiveFlagBanner,renderTrialStatus];
+  const jobs=[renderMeals,renderExit,renderWeek,renderMonth,renderTrends,renderReport,renderTodayEyebrow,renderSupplements,renderCourses,applyCollapseState,renderActiveFlagBanner,renderTrialStatus,renderBackupReminder];
   jobs.forEach(fn=>{
     try{ fn(); }
     catch(err){ console.error(fn.name+" failed",err); }

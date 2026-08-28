@@ -1,6 +1,6 @@
 # Intolearn
 
-Personal-use prototype. Current build: **v7.5**.
+Personal-use prototype. Current build: **v7.6**.
 
 ## Run it
 
@@ -51,6 +51,15 @@ These aren't just descriptive — they're clinically relevant and worth a medica
 The calendar week now starts Monday (UK convention) with day-of-week headers above the grid. Good/rough/mixed days carry a soft glow matching their colour, on top of the existing background tint and border — a deliberate exception to the flat/no-glow system, same reasoning as the pulsing side-effect flags: these are the two places in the app meant to catch your eye at a glance rather than blend in.
 
 Tapping any day opens a read-only breakdown (Exit Interview summary, each meal, supplements/meds logged that day) — and tapping any entry within that breakdown jumps straight into its full edit dialog, the same one used from Today.
+
+## Backup & restore (Settings)
+
+There's no cloud sync — everything lives in this browser's `localStorage` on this one device, so a backup is the only real protection against a cleared cache, a browser update gone wrong, or switching phones.
+
+- **Back up**: on iOS/Safari this uses the native Share Sheet (`navigator.share` with a file), so "Back up now" lets you save straight to Files/iCloud Drive, AirDrop it, or send it to yourself — not just a browser download, which behaves inconsistently for an installed home-screen PWA anyway. Falls back to a plain download on browsers that don't support file sharing.
+- **Restore**: pick a previously-saved backup file and it replaces everything currently in this browser, after a confirmation showing how many days are in each side of the swap. This didn't exist before v7.6 — there was an export button but no way back in, which meant it wasn't really a backup, just a one-way dump.
+- **The reminder**: a quiet "Back up your diary" notice appears at the bottom of Today, but only once there's at least 5 days of real data logged *and* it's been 21+ days since the last backup (or you've never done one). No badge, no red dot, no daily nagging — it disappears the moment you back up, and stays invisible entirely until there's something worth losing.
+- **Known limitation**: restoring is a full replace, not a merge — if you've logged new entries on this device since your last backup, restoring an older file loses them. Worth exporting immediately before restoring if that matters to you.
 
 ## Data & privacy
 
