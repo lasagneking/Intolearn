@@ -1,6 +1,6 @@
 # Intolearn
 
-Personal-use prototype. Current build: **v8.3**.
+Personal-use prototype. Current build: **v8.4**.
 
 ## Run it
 
@@ -55,6 +55,10 @@ Symptom icons come from a shared `SYMPTOM_ICONS` map (bloating, abdominalPain, d
 **Card open/close transition (v8.1)**: tapping a tile opens the card with a zoom + fade (scales from 92% while fading in, backdrop darkens at the same time; ~220ms), rather than the instant snap-open every other dialog in the app uses. This is deliberately scoped to `#knowledgeDialog` only — every other dialog still opens instantly — since a Knowledge card is browsed casually and repeatedly, unlike a form dialog you want to get in and out of fast. Native `<dialog>` elements don't animate open/close by default; this uses the standard "toggle a class on the next animation frame" technique so the CSS transition has something to transition from, and on close, waits for the transition to actually finish (with a timeout safety net) before calling the real `.close()` — otherwise the dialog would vanish instantly and only the backdrop would fade.
 
 **Grid tile layout fix (v8.2)**: the tiles looked like "big boxes with tiny icons" — a real bug, not just a style call. The icon-tile box had been sized up to 42px, but the SVG inside is sized via the tile's `font-size` (controls `1em`), which hadn't been scaled to match, so the box grew while the icon stayed small. Fixed by setting both together (54px box, 27px font-size) and switching from a stacked icon-above-text layout to icon-left-text-right, single column instead of two — two columns crammed the longer names ("Cereals containing gluten," "Legumes / pulses") into too little space once the icon got bigger.
+
+**"Mine" markers (v8.4)**: any category in your onboarding allergy list gets a thin amber left-edge and a small "MINE" tag in the Learn grid, so browsing the full 22 immediately shows which ones are actually yours versus general reference. Recalculates whenever the profile's allergy list changes (onboarding, Edit profile, restoring a backup, clearing local data) — never stale.
+
+**Cross-links back to Learn (v8.4)**: ingredient/category names shown in Trends, Report (Possible Connections, Exposures), and Ingredient Checker's match results are now tappable straight into the matching Learn card — so seeing "Wheat" flagged as a possible suspect leads directly to what that means, rather than requiring a trip to the Learn tab and a search. Matching reuses `checkerTriggerTerms` (the same term lists that already power ingredient-label scanning) rather than a second list to maintain, so "cheese" correctly resolves to "Milk / dairy" and "oats" to "Cereals containing gluten." A name that doesn't confidently match any of the 22 categories — a supplement name, a portion/cooking tag — just renders as plain text; nothing is guessed past what the term lists actually support. Deliberately *not* applied to Known Suspects (supplement/medication names) or individual food-entry ingredient tags in the diary — the former would produce nonsense matches, the latter would turn every meal entry into a wall of clickable text.
 
 ## Portion size & cooking method
 

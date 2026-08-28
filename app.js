@@ -2,7 +2,7 @@
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 2;
-const APP_VERSION = "8.3";
+const APP_VERSION = "8.4";
 
 // Hand-sketched, single-stroke "field notebook" icon set — every icon uses
 // currentColor so it inherits ink/amber automatically on selected/active
@@ -139,6 +139,34 @@ const checkerTriggerTerms = {
 function getSelectedCheckerTriggers(){
   return [...document.querySelectorAll("#checkerTriggers button.selected")].map(b=>b.dataset.trigger);
 }
+// Matches free-text (a diary ingredient word, a trend result) to one of
+// the 22 Learn categories, reusing the same term lists already built for
+// ingredient-label scanning — so "cheese" or "oats" correctly resolves to
+// "Milk / dairy" or "Cereals containing gluten" without a second list to
+// maintain. Returns the canonical category name, or null if no confident
+// match exists — callers must not guess past that.
+function matchKnowledgeCategory(text){
+  if(!text) return null;
+  const clean=text.trim();
+  if(ALLERGEN_ICONS[clean]) return clean;
+  const hay=normaliseScanText(clean);
+  for(const name of Object.keys(checkerTriggerTerms)){
+    if((checkerTriggerTerms[name]||[]).some(term=>termPresent(hay,term))) return name;
+  }
+  return null;
+}
+// Wraps text in a tappable link to its matching Learn card when a
+// confident match exists; otherwise returns the plain escaped text.
+function knowledgeLink(text){
+  const match=matchKnowledgeCategory(text);
+  if(!match) return escapeHtml(text);
+  return `<button type="button" class="kb-link" data-kb="${escapeHtml(match)}">${escapeHtml(text)}</button>`;
+}
+document.addEventListener("click", e=>{
+  const link=e.target.closest(".kb-link");
+  if(link) openKnowledgeCard(link.dataset.kb);
+});
+
 function findCheckerMatches(text){
   const hay=normaliseScanText(text);
   return getSelectedCheckerTriggers().filter(name=>
@@ -192,7 +220,7 @@ async function scanCheckerImage(file){
       icon.innerHTML=ICONS.checkAlert;
       title.textContent="Selected ingredient detected";
       text.textContent="Intolearn found one or more of the ingredients you selected in the scanned text.";
-      tags.innerHTML=matches.map(x=>`<span class="checker-match-tag">${escapeHtml(x)}</span>`).join("");
+      tags.innerHTML=matches.map(x=>`<span class="checker-match-tag">${knowledgeLink(x)}</span>`).join("");
     }else{
       resultBox.className="checker-result clear";
       icon.innerHTML=ICONS.checkClear;
@@ -662,7 +690,7 @@ function applyBarcodeProductToChecker(product){
     icon.innerHTML=ICONS.checkAlert;
     title.textContent="Selected trigger detected";
     text.textContent=`One or more selected triggers were found. Source: ${product.allergenSource||"available product data"}.`;
-    tags.innerHTML=matches.map(x=>`<span class="checker-match-tag">${escapeHtml(x)}</span>`).join("");
+    tags.innerHTML=matches.map(x=>`<span class="checker-match-tag">${knowledgeLink(x)}</span>`).join("");
   }else{
     resultBox.className="checker-result clear";
     icon.innerHTML=ICONS.checkClear;
@@ -2140,12 +2168,14 @@ function registerKnowledgeCards(cards){ Object.assign(knowledgeCards, cards||{})
 function renderKnowledgeGrid(){
   const grid=document.getElementById("knowledgeGrid");
   if(!grid) return;
+  const mine=new Set(state.profile?.allergies||[]);
   const entries=Object.keys(ALLERGEN_ICONS);
   grid.innerHTML=entries.map(name=>{
     const has=!!knowledgeCards[name];
-    return `<button type="button" class="knowledge-tile${has?"":" knowledge-tile-empty"}" data-name="${escapeHtml(name)}">
+    const isMine=mine.has(name);
+    return `<button type="button" class="knowledge-tile${has?"":" knowledge-tile-empty"}${isMine?" knowledge-tile-mine":""}" data-name="${escapeHtml(name)}">
       <span class="icon-tile">${ALLERGEN_ICONS[name]}</span>
-      <strong>${escapeHtml(name)}</strong>
+      <strong>${escapeHtml(name)}${isMine?' <span class="knowledge-mine-tag">MINE</span>':""}</strong>
       ${has?"":"<small>Coming soon</small>"}
     </button>`;
   }).join("");
@@ -2892,14 +2922,14 @@ function renderReport(){
   const connections=ranked.slice(0,5);
   document.getElementById("reportConnections").innerHTML=connections.length?connections.map(x=>`
     <div class="connection-card">
-      <div class="connection-title"><strong>${escapeHtml(titleCase(x.name))}</strong><span class="connection-score">${Math.round(x.rate*100)}%</span></div>
+      <div class="connection-title"><strong>${knowledgeLink(titleCase(x.name))}</strong><span class="connection-score">${Math.round(x.rate*100)}%</span></div>
       <div class="connection-bar"><span style="width:${Math.round(x.rate*100)}%"></span></div>
       <p>${x.symptomDays} of ${x.days} exposure day${x.days===1?"":"s"} were followed by symptoms within ${reactionWindowLabel(reactionWindowDays)} — vs ${Math.round(baseline*100)}% of all recorded days.</p>
     </div>`).join(""):`<p class="muted">${consideredDays<3?"Not enough recorded days yet.":"No ingredient stands out clearly from your usual baseline yet."} Keep logging and this section will build automatically.</p>`;
 
   const exposures=Object.entries(statsRaw).map(([name,v])=>({name,...v})).sort((a,b)=>b.days-a.days).slice(0,8);
   document.getElementById("reportExposures").innerHTML=exposures.length?exposures.map(x=>`
-    <div class="exposure-row"><strong>${escapeHtml(titleCase(x.name))}</strong><span>${x.days} day${x.days===1?"":"s"}</span></div>`).join(""):`<p class="muted">No ingredient groups recorded in this period yet.</p>`;
+    <div class="exposure-row"><strong>${knowledgeLink(titleCase(x.name))}</strong><span>${x.days} day${x.days===1?"":"s"}</span></div>`).join(""):`<p class="muted">No ingredient groups recorded in this period yet.</p>`;
 
   document.getElementById("reportExit").innerHTML=`
     <div class="exit-grid">
@@ -2958,7 +2988,7 @@ function renderTrends(){
   if(trendsEyebrow) trendsEyebrow.textContent=`TRENDS / ${trends.length} FOUND`;
   document.getElementById("trendCards").innerHTML=trends.length?trends.map(t=>`
     <div class="trend-card">
-      <h3>${escapeHtml(titleCase(t.name))}</h3>
+      <h3>${knowledgeLink(titleCase(t.name))}</h3>
       <p class="muted">${t.symptomDays} of ${t.days} logged day${t.days===1?"":"s"} with this ingredient were followed by symptoms within ${reactionWindowLabel(reactionWindowDays)} — vs ${Math.round(baseline*100)}% of all your recorded days.</p>
       <div class="trend-bar"><span style="width:${Math.round(t.rate*100)}%"></span></div>
       <div class="trend-meta"><span>Rate above your baseline</span><strong>+${Math.round((t.rate-baseline)*100)}pt</strong></div>
@@ -3109,6 +3139,7 @@ document.getElementById("onboardingSaveBtn").addEventListener("click", ()=>{
   saveState();
   renderAvatar();
   renderGreeting();
+  renderKnowledgeGrid();
   closeOnboardingDialog();
   showToast("Profile saved");
 });
@@ -3243,6 +3274,7 @@ document.getElementById("restoreFileInput").addEventListener("change", e=>{
       renderAvatar();
       renderGreeting();
       renderLastBackupText();
+      renderKnowledgeGrid();
       showToast("Backup restored");
       document.getElementById("settingsDialog").close();
     }else{
@@ -3255,7 +3287,7 @@ document.getElementById("restoreFileInput").addEventListener("change", e=>{
 document.getElementById("clearDataBtn").onclick=()=>{
   if(confirm("Clear all Intolearn data stored in this browser?")){
     localStorage.removeItem(STORAGE_KEY); state=blankState(); ensureDay(); renderAll();
-    renderAvatar(); renderGreeting();
+    renderAvatar(); renderGreeting(); renderKnowledgeGrid();
     showToast("Local data cleared");
     openOnboarding(false);
   }
