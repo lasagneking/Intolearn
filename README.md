@@ -1,6 +1,6 @@
 # Intolearn
 
-Personal-use prototype. Current build: **v8.0**.
+Personal-use prototype. Current build: **v8.1**.
 
 ## Run it
 
@@ -51,6 +51,8 @@ The Week tab was removed — checking the actual code, it only ever showed a 7-d
 }
 ```
 Symptom icons come from a shared `SYMPTOM_ICONS` map (bloating, abdominalPain, diarrhoea, fatigue, headache, brainFog, nausea, vomiting, skin, joint, breathing, swelling, dizziness, wind, gurgling, mouth, constipation, heartburn) rather than one-off icons per card, so "Fatigue" always uses the same icon everywhere it appears — add to that map as new symptom concepts show up in future cards, rather than inventing a new icon per card. `registerKnowledgeCards()` merges into the existing set rather than replacing it, so each new batch is its own call and never wipes what's already there.
+
+**Card open/close transition (v8.1)**: tapping a tile opens the card with a zoom + fade (scales from 92% while fading in, backdrop darkens at the same time; ~220ms), rather than the instant snap-open every other dialog in the app uses. This is deliberately scoped to `#knowledgeDialog` only — every other dialog still opens instantly — since a Knowledge card is browsed casually and repeatedly, unlike a form dialog you want to get in and out of fast. Native `<dialog>` elements don't animate open/close by default; this uses the standard "toggle a class on the next animation frame" technique so the CSS transition has something to transition from, and on close, waits for the transition to actually finish (with a timeout safety net) before calling the real `.close()` — otherwise the dialog would vanish instantly and only the backdrop would fade.
 
 ## Portion size & cooking method
 

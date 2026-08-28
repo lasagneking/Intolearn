@@ -2,7 +2,7 @@
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 2;
-const APP_VERSION = "8.0";
+const APP_VERSION = "8.1";
 
 // Hand-sketched, single-stroke "field notebook" icon set — every icon uses
 // currentColor so it inherits ink/amber automatically on selected/active
@@ -2171,13 +2171,29 @@ function openKnowledgeCard(name){
     ${symptoms ? `<div class="knowledge-divider"></div><div class="eyebrow">KEY SYMPTOMS</div><div class="symptom-grid">${symptoms}</div>` : ""}
     ${card.goodToKnow ? `<div class="checker-warning" style="margin-top:20px"><strong>Good to know</strong><p>${escapeHtml(card.goodToKnow)}</p></div>` : ""}
   `;
-  document.getElementById("knowledgeDialog").showModal();
+  const dialog=document.getElementById("knowledgeDialog");
+  dialog.showModal();
+  // Double rAF so the browser paints the dialog in its starting state
+  // before the "show" class is added — otherwise the transition has
+  // nothing to transition from and just snaps straight to the end state.
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>dialog.classList.add("show"));
+  });
 }
 function closeKnowledgeDialog(){
   const d=document.getElementById("knowledgeDialog");
-  if(!d) return;
-  try{ if(d.open) d.close(); }catch(err){ console.warn("Dialog close failed",err); }
-  if(d.hasAttribute("open")) d.removeAttribute("open");
+  if(!d || !d.open) return;
+  d.classList.remove("show");
+  let done=false;
+  const finish=()=>{
+    if(done) return;
+    done=true;
+    clearTimeout(timer);
+    try{ if(d.open) d.close(); }catch(err){ console.warn("Dialog close failed",err); }
+    if(d.hasAttribute("open")) d.removeAttribute("open");
+  };
+  d.addEventListener("transitionend", finish, {once:true});
+  const timer=setTimeout(finish, 260); // safety net if transitionend doesn't fire
 }
 document.getElementById("closeKnowledgeDialog").addEventListener("click", closeKnowledgeDialog);
 document.getElementById("knowledgeDialog").addEventListener("cancel", e=>{

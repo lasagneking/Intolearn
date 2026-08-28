@@ -155,6 +155,11 @@ textarea:focus,input:focus,select:focus{border-color:var(--trace);box-shadow:0 0
 
 dialog{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:0;padding:0;max-width:560px;width:calc(100% - 28px);box-shadow:0 24px 60px rgba(0,0,0,.5)}
 dialog::backdrop{background:rgba(8,7,6,.72);backdrop-filter:blur(3px)}
+/* Knowledge card open/close: zoom + fade, scoped to this dialog only. */
+#knowledgeDialog{opacity:0;transform:scale(.92) translateY(12px);transition:opacity .22s ease,transform .22s ease}
+#knowledgeDialog.show{opacity:1;transform:scale(1) translateY(0)}
+#knowledgeDialog::backdrop{background:rgba(8,7,6,0);transition:background .28s ease}
+#knowledgeDialog.show::backdrop{background:rgba(8,7,6,.72);backdrop-filter:blur(3px)}
 dialog form{padding:22px} .dialog-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
 dialog input,dialog textarea{margin-bottom:14px}
 .scan-panel{background:var(--bg);border:1px dashed var(--line);border-radius:0;padding:14px;margin:6px 0 14px}
