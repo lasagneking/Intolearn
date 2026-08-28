@@ -1,6 +1,6 @@
 # Intolearn
 
-Personal-use prototype. Current build: **v8.1**.
+Personal-use prototype. Current build: **v8.2**.
 
 ## Run it
 
@@ -53,6 +53,8 @@ The Week tab was removed — checking the actual code, it only ever showed a 7-d
 Symptom icons come from a shared `SYMPTOM_ICONS` map (bloating, abdominalPain, diarrhoea, fatigue, headache, brainFog, nausea, vomiting, skin, joint, breathing, swelling, dizziness, wind, gurgling, mouth, constipation, heartburn) rather than one-off icons per card, so "Fatigue" always uses the same icon everywhere it appears — add to that map as new symptom concepts show up in future cards, rather than inventing a new icon per card. `registerKnowledgeCards()` merges into the existing set rather than replacing it, so each new batch is its own call and never wipes what's already there.
 
 **Card open/close transition (v8.1)**: tapping a tile opens the card with a zoom + fade (scales from 92% while fading in, backdrop darkens at the same time; ~220ms), rather than the instant snap-open every other dialog in the app uses. This is deliberately scoped to `#knowledgeDialog` only — every other dialog still opens instantly — since a Knowledge card is browsed casually and repeatedly, unlike a form dialog you want to get in and out of fast. Native `<dialog>` elements don't animate open/close by default; this uses the standard "toggle a class on the next animation frame" technique so the CSS transition has something to transition from, and on close, waits for the transition to actually finish (with a timeout safety net) before calling the real `.close()` — otherwise the dialog would vanish instantly and only the backdrop would fade.
+
+**Grid tile layout fix (v8.2)**: the tiles looked like "big boxes with tiny icons" — a real bug, not just a style call. The icon-tile box had been sized up to 42px, but the SVG inside is sized via the tile's `font-size` (controls `1em`), which hadn't been scaled to match, so the box grew while the icon stayed small. Fixed by setting both together (54px box, 27px font-size) and switching from a stacked icon-above-text layout to icon-left-text-right, single column instead of two — two columns crammed the longer names ("Cereals containing gluten," "Legumes / pulses") into too little space once the icon got bigger.
 
 ## Portion size & cooking method
 
