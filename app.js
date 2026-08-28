@@ -2,7 +2,7 @@
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 2;
-const APP_VERSION = "8.2";
+const APP_VERSION = "8.3";
 
 // Hand-sketched, single-stroke "field notebook" icon set — every icon uses
 // currentColor so it inherits ink/amber automatically on selected/active
@@ -856,12 +856,13 @@ let cropper = null;
 let pendingPhotoFile = null;
 let cropDestination = "meal";
 
-function blankState(){ return { days:{}, profile:{name:"", photo:"", allergies:[], onboarded:false}, courses:[], trials:[] }; }
+function blankState(){ return { days:{}, profile:{name:"", photo:"", allergies:[], usageType:"", onboarded:false}, courses:[], trials:[] }; }
 function loadState(){
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY)) || blankState();
     parsed.days ||= {};
-    parsed.profile ||= {name:"", photo:"", allergies:[], onboarded:false};
+    parsed.profile ||= {name:"", photo:"", allergies:[], usageType:"", onboarded:false};
+    parsed.profile.usageType ||= "";
     parsed.courses ||= [];
     parsed.trials ||= [];
     return parsed;
@@ -3010,10 +3011,40 @@ function getSelectedOnboardingTriggers(){
   return [...document.querySelectorAll("#onboardingTriggers button.selected")].map(b=>b.dataset.trigger);
 }
 
+function updateOnboardAllergyCopy(){
+  const usage=document.querySelector('[data-choice="onboardUsage"] button.selected')?.dataset.value || "";
+  const label=document.getElementById("onboardAllergyLabel");
+  const hint=document.getElementById("onboardAllergyHint");
+  if(!label || !hint) return;
+  if(usage==="diagnosed"){
+    label.textContent="What allergies or intolerances do you need to watch for?";
+    hint.textContent="These become your default selection in Ingredient Checker — you can still adjust per check.";
+  }else if(usage==="carer"){
+    label.textContent="What allergies or intolerances are you checking for?";
+    hint.textContent="These become the default selection in Ingredient Checker when you're checking food for someone else.";
+  }else{
+    label.textContent="Any known or suspected allergies or intolerances?";
+    hint.textContent="Optional — these become your default selection in Ingredient Checker.";
+  }
+}
+document.querySelectorAll('[data-choice="onboardUsage"] button').forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll('[data-choice="onboardUsage"] button').forEach(b=>b.classList.remove("selected"));
+    btn.classList.add("selected");
+    updateOnboardAllergyCopy();
+  });
+});
+
 function openOnboarding(isEdit=false){
   const nameEl=document.getElementById("onboardName");
   nameEl.value=isEdit ? (state.profile?.name||"") : "";
   nameEl.classList.remove("field-error");
+
+  const usageType=isEdit ? (state.profile?.usageType||"") : "";
+  document.querySelectorAll('[data-choice="onboardUsage"] button').forEach(btn=>{
+    btn.classList.toggle("selected", btn.dataset.value===usageType);
+  });
+  updateOnboardAllergyCopy();
 
   onboardPhotoData=isEdit ? (state.profile?.photo||"") : "";
   document.getElementById("onboardPhotoPreview").innerHTML=onboardPhotoData
@@ -3072,6 +3103,7 @@ document.getElementById("onboardingSaveBtn").addEventListener("click", ()=>{
     name,
     photo: onboardPhotoData || "",
     allergies: getSelectedOnboardingTriggers(),
+    usageType: document.querySelector('[data-choice="onboardUsage"] button.selected')?.dataset.value || "learning",
     onboarded: true
   };
   saveState();

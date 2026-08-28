@@ -1,6 +1,6 @@
 # Intolearn
 
-Personal-use prototype. Current build: **v8.2**.
+Personal-use prototype. Current build: **v8.3**.
 
 ## Run it
 
@@ -97,9 +97,15 @@ A service worker (`sw.js`) precaches the app shell (HTML/CSS/JS, icons), the Goo
 
 ## Onboarding & profile
 
-On first launch, Intolearn asks for a name (used for the "Good morning/afternoon/evening" greeting), an optional photo (replaces the settings gear in the top bar with your photo, or your initial if no photo is set), and any known allergies/intolerances — picked from the same 22-item list used in Ingredient Checker. Whatever's selected there becomes the **default pre-selected set** every time you open Ingredient Checker afterward; you can still add or remove ingredients per-check without changing your saved defaults.
+On first launch, Intolearn asks for a name (used for the "Good morning/afternoon/evening" greeting), **how you're using the app** (v8.3 — see below), an optional photo (replaces the settings gear in the top bar with your photo, or your initial if no photo is set), and any known allergies/intolerances — picked from the same 22-item list used in Ingredient Checker. Whatever's selected there becomes the **default pre-selected set** every time you open Ingredient Checker afterward; you can still add or remove ingredients per-check without changing your saved defaults.
 
 Tap your avatar (top right) → **Edit profile** to change any of this later. "Clear all local data" in Settings also resets the profile and re-triggers onboarding, since it's a fresh start.
+
+### Usage type (v8.3)
+
+Three options: *working out what's affecting me*, *already have a diagnosed allergy/intolerance*, or *checking food/tracking for someone else* (parent, carer, teacher). This is stored as `state.profile.usageType` and currently does one thing: it reframes the allergy question right after it — "any *known or suspected*" (learning) vs. "what do you need to watch for" (diagnosed) vs. "what are you checking for" (carer) — so the same question doesn't feel like it's assuming a diagnosis you don't have, or being vague when you already know exactly what you're avoiding.
+
+**Scope boundary, stated plainly**: this does *not* create separate profiles or a separate diary for someone else. Intolearn's entire data model is single-profile — one name, one set of allergies, one diary. A carer selecting "checking for someone else" is still answering as themselves, on the one profile that exists; there's no way to track, say, a parent's own reactions separately from a child's in the same install. True multi-profile support (switching between "who you're tracking for," each with their own diary/allergies/history) would be a significantly larger feature — a real data-model change, not an onboarding tweak — and hasn't been built.
 
 ## Visual identity
 

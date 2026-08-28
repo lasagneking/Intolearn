@@ -92,6 +92,8 @@ h3{margin:0;font-weight:600}
 .field-block>label,dialog label{display:block;font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:var(--muted);margin-bottom:9px}
 
 .choice-row{display:flex;gap:8px;flex-wrap:wrap}
+.choice-row-stack{flex-direction:column}
+.choice-row-stack button{width:100%;text-align:left;font-size:13px;line-height:1.35}
 .choice-row button,.chip{border:1px solid var(--line);background:var(--bg);border-radius:0;padding:10px 13px;color:var(--ink)}
 .choice-row button.selected,.chip.selected{background:var(--trace);color:#161310;border-color:var(--trace);font-weight:700}
 .emoji-row button{min-width:80px;display:flex;flex-direction:column;gap:6px;align-items:center}

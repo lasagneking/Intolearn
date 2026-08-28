@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,500;1,9..144,600&family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Petit+Formal+Script&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css" />
-  <link rel="stylesheet" href="styles.css?v=75" />
+  <link rel="stylesheet" href="styles.css?v=76" />
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Intolearn">
@@ -718,7 +718,14 @@
       <label>What should we call you?</label>
       <input id="onboardName" placeholder="Your name" autocomplete="off" />
 
-      <label>Add a photo (optional)</label>
+      <label style="margin-top:20px">How will you be using Intolearn?</label>
+      <div class="choice-row choice-row-stack" data-choice="onboardUsage">
+        <button type="button" data-value="learning">Working out what might be affecting me</button>
+        <button type="button" data-value="diagnosed">I already have a diagnosed allergy or intolerance</button>
+        <button type="button" data-value="carer">Checking food or tracking on behalf of someone else</button>
+      </div>
+
+      <label style="margin-top:20px">Add a photo (optional)</label>
       <div class="photo-choice-row">
         <label class="secondary file-label photo-choice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-2px;margin-right:5px"><path d="M4 8.5h3l1.4-2h5.2l1.4 2H20V19H4Z"/><circle cx="12" cy="13.2" r="3.3"/></svg>Take photo
           <input type="file" accept="image/*" capture="user" id="onboardCameraInput">
@@ -729,8 +736,8 @@
       </div>
       <div id="onboardPhotoPreview"></div>
 
-      <label style="margin-top:20px">Any known allergies or intolerances?</label>
-      <p class="muted" style="margin-top:-6px">Optional — these become your default selection in Ingredient Checker.</p>
+      <label style="margin-top:20px" id="onboardAllergyLabel">Any known allergies or intolerances?</label>
+      <p class="muted" style="margin-top:-6px" id="onboardAllergyHint">Optional — these become your default selection in Ingredient Checker.</p>
       <div class="checker-trigger-grid" id="onboardingTriggers">
         <button type="button" data-trigger="Cereals containing gluten">🌾 Gluten cereals</button>
         <button type="button" data-trigger="Wheat">🌾 Wheat</button>
@@ -765,7 +772,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
-  <script src="app.js?v=77"></script>
+  <script src="app.js?v=78"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
