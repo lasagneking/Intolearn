@@ -2,7 +2,7 @@
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 2;
-const APP_VERSION = "7.7";
+const APP_VERSION = "8.0";
 
 // Hand-sketched, single-stroke "field notebook" icon set — every icon uses
 // currentColor so it inherits ink/amber automatically on selected/active
@@ -2123,11 +2123,18 @@ const SYMPTOM_ICONS={
   skin:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M6 13c0-4 2.5-8 6-9 3.5 1 6 5 6 9a6 6 0 0 1-12 0Z"/><circle cx="10" cy="13" r=".4" fill="currentColor"/><circle cx="14" cy="11" r=".4" fill="currentColor"/><circle cx="12" cy="15.5" r=".4" fill="currentColor"/></svg>`,
   joint:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M6 18 11 8"/><path d="M13 8 18 18"/><circle cx="12" cy="8" r="2.2"/></svg>`,
   breathing:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M8 20c-2.5 0-4-1.8-4-4s1.8-4 4-3.4"/><path d="M16 20c2.5 0 4-1.8 4-4s-1.8-4-4-3.4"/><path d="M12 4v13"/></svg>`,
-  vomiting:`<svg viewBox="0 0 24 24" ${SVG_BASE}><circle cx="12" cy="10" r="6.5"/><path d="M9 8.5c.5-.7 1.3-.7 1.8 0M13.2 8.5c.5-.7 1.3-.7 1.8 0"/><path d="M9 12c1-.8 2.3-.8 3 0 .7-.8 2-.8 3 0"/><path d="M12 17v4M9.5 21h5"/></svg>`
+  vomiting:`<svg viewBox="0 0 24 24" ${SVG_BASE}><circle cx="12" cy="10" r="6.5"/><path d="M9 8.5c.5-.7 1.3-.7 1.8 0M13.2 8.5c.5-.7 1.3-.7 1.8 0"/><path d="M9 12c1-.8 2.3-.8 3 0 .7-.8 2-.8 3 0"/><path d="M12 17v4M9.5 21h5"/></svg>`,
+  swelling:`<svg viewBox="0 0 24 24" ${SVG_BASE}><circle cx="12" cy="12" r="5"/><path d="M12 4v2M12 18v2M4 12h2M18 12h2M6.3 6.3l1.4 1.4M16.3 6.3l-1.4 1.4M6.3 17.7l1.4-1.4M16.3 17.7l-1.4-1.4"/></svg>`,
+  dizziness:`<svg viewBox="0 0 24 24" ${SVG_BASE}><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/><ellipse cx="12" cy="12" rx="8" ry="3.2" transform="rotate(-20 12 12)"/><ellipse cx="12" cy="12" rx="8" ry="3.2" transform="rotate(40 12 12)"/></svg>`,
+  wind:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M4 9c3 0 3-3 6-3s2 3 5 3 3-2 5-1"/><path d="M4 15c3 0 3-3 6-3s2 3 5 3 3-2 5-1"/></svg>`,
+  gurgling:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M6 11c-.4 3 .4 6.5 4 6.5s4.4-3.5 4-6.5"/><path d="M6 11c0-2.2 1.8-4 4-4s4 1.8 4 4"/><path d="M16 8c1 .8 1 2 0 3M18 6.5c1.8 1.6 1.8 4.4 0 6"/></svg>`,
+  mouth:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M5 12c2-2 5-3 7-3s5 1 7 3c-2 2-5 3-7 3s-5-1-7-3Z"/><path d="M9 12h6"/><path d="M17.5 6.7l.8-.8M19.5 9.2l1-.4"/></svg>`,
+  constipation:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M7 4h10M7 20h10M8 4c0 4 3 6 4 6s4-2 4-6M8 20c0-4 3-6 4-6s4 2 4 6"/></svg>`,
+  heartburn:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M12 3c1 3-2 4-2 7a3 3 0 0 0 6 0c0-1.5-1-2-1-3.5 2 1 3 3.5 3 5.5a5 5 0 0 1-10 0C8 8 10 6 12 3Z"/></svg>`
 };
 
 let knowledgeCards={};
-function registerKnowledgeCards(cards){ knowledgeCards=cards||{}; renderKnowledgeGrid(); }
+function registerKnowledgeCards(cards){ Object.assign(knowledgeCards, cards||{}); renderKnowledgeGrid(); }
 
 function renderKnowledgeGrid(){
   const grid=document.getElementById("knowledgeGrid");
@@ -2181,7 +2188,7 @@ document.getElementById("knowledgeDialog").addEventListener("cancel", e=>{
 // Working example, using the exact content already shared, so the system
 // is provable before the remaining 21 cards arrive.
 registerKnowledgeCards({
-  "Wheat": {
+  "Cereals containing gluten": {
     description:[
       "Gluten cereals intolerance (also known as coeliac disease) is an immune reaction to gluten, a protein found in wheat, barley, rye and their derivatives. When gluten is consumed, it can damage the lining of the small intestine, leading to poor nutrient absorption and a range of uncomfortable symptoms.",
       "It is a chronic condition and symptoms can occur even with small amounts of gluten. Strict, lifelong avoidance of gluten is currently the only treatment."
@@ -2195,6 +2202,324 @@ registerKnowledgeCards({
       {icon:"brainFog", title:"Brain fog", text:"Difficulty concentrating, forgetfulness."}
     ],
     goodToKnow:"Gluten can be hidden in many foods including sauces, soups, processed meats, confectionery and some drinks. Always check labels and look for hidden sources."
+  }
+});
+
+registerKnowledgeCards({
+  "Wheat": {
+    description:[
+      "Wheat is a cereal grain found in a wide range of everyday foods, including bread, pasta, cereals, biscuits, cakes and many processed foods. Wheat can cause symptoms in people with wheat allergy, coeliac disease or wheat intolerance, although these are different conditions.",
+      "Symptoms can vary considerably between people and may affect the digestive system, skin, breathing or general wellbeing. Wheat can also appear in foods under less obvious names, making ingredient-label checking particularly important."
+    ],
+    symptoms:[
+      {icon:"bloating", title:"Bloating", text:"Feeling swollen, full or uncomfortable after eating."},
+      {icon:"abdominalPain", title:"Abdominal pain", text:"Stomach cramps, discomfort or pain."},
+      {icon:"diarrhoea", title:"Diarrhoea", text:"Loose or watery stools following exposure."},
+      {icon:"fatigue", title:"Fatigue", text:"Tiredness or reduced energy after eating."},
+      {icon:"headache", title:"Headaches", text:"Headaches that may occur alongside other symptoms."},
+      {icon:"skin", title:"Skin reactions", text:"Rashes, itching or hives can occur with wheat allergy."}
+    ],
+    goodToKnow:"Wheat can be found in bread, pasta, cereals, cakes, biscuits, sauces and processed foods. Check ingredient labels carefully, particularly on packaged foods."
+  },
+  "Milk / dairy": {
+    description:[
+      "Milk and dairy products contain several components that can cause problems for some people. Milk allergy involves an immune reaction to milk proteins, while lactose intolerance involves difficulty digesting the naturally occurring sugar lactose.",
+      "Symptoms can range from digestive discomfort to skin or respiratory symptoms in people with a true milk allergy. Dairy products include milk, cream, butter, cheese, yoghurt and many foods made using these ingredients."
+    ],
+    symptoms:[
+      {icon:"bloating", title:"Bloating", text:"Abdominal swelling or fullness after consuming dairy."},
+      {icon:"abdominalPain", title:"Abdominal pain", text:"Cramps or stomach discomfort."},
+      {icon:"diarrhoea", title:"Diarrhoea", text:"Loose or watery stools after dairy consumption."},
+      {icon:"nausea", title:"Nausea", text:"Feeling sick or unsettled after eating dairy."},
+      {icon:"skin", title:"Skin reactions", text:"Rashes, itching or hives may occur with milk allergy."},
+      {icon:"fatigue", title:"Fatigue", text:"Tiredness or reduced energy may accompany digestive symptoms."}
+    ],
+    goodToKnow:"Milk ingredients can appear in unexpected foods including sauces, chocolate, baked goods and processed meals. Milk, whey, casein and milk powder are common ingredients to look for."
+  },
+  "Lactose": {
+    description:[
+      "Lactose is the naturally occurring sugar found in milk and many dairy products. Lactose intolerance occurs when the body does not produce enough lactase, the enzyme needed to digest lactose effectively.",
+      "Undigested lactose reaches the large intestine, where it can cause digestive symptoms. The amount that causes symptoms varies between people, and some people can tolerate small quantities."
+    ],
+    symptoms:[
+      {icon:"bloating", title:"Bloating", text:"Abdominal swelling or a feeling of fullness."},
+      {icon:"wind", title:"Wind", text:"Increased gas or flatulence after consuming lactose."},
+      {icon:"abdominalPain", title:"Abdominal pain", text:"Cramping or discomfort after eating dairy."},
+      {icon:"diarrhoea", title:"Diarrhoea", text:"Loose or watery stools following lactose consumption."},
+      {icon:"nausea", title:"Nausea", text:"Feeling sick or unsettled after eating lactose."},
+      {icon:"gurgling", title:"Stomach rumbling", text:"Increased intestinal sounds or movement."}
+    ],
+    goodToKnow:"Lactose is found mainly in milk and dairy products. Lactose-free milk and dairy alternatives may be suitable for some people, but always check the ingredients of processed foods."
+  },
+  "Egg": {
+    description:[
+      "Egg allergy is an immune response to proteins found primarily in egg white, although egg yolk can also cause reactions. Eggs are used in many foods beyond obvious dishes such as omelettes and scrambled eggs.",
+      "Some people experience digestive symptoms, while an egg allergy can also cause skin or respiratory reactions. The severity and symptoms can vary considerably between individuals."
+    ],
+    symptoms:[
+      {icon:"abdominalPain", title:"Abdominal pain", text:"Stomach cramps or discomfort."},
+      {icon:"nausea", title:"Nausea", text:"Feeling sick after eating egg."},
+      {icon:"diarrhoea", title:"Diarrhoea", text:"Loose stools following exposure."},
+      {icon:"skin", title:"Skin reactions", text:"Itching, hives or a rash may occur."},
+      {icon:"swelling", title:"Swelling", text:"Swelling can occur with an allergic reaction."},
+      {icon:"fatigue", title:"Fatigue", text:"Tiredness or feeling unwell following exposure."}
+    ],
+    goodToKnow:"Egg can be hidden in cakes, biscuits, mayonnaise, pasta, sauces and baked goods. Ingredient labels may list egg, albumen, ovalbumin or other egg-derived ingredients."
+  },
+  "Soya": {
+    description:[
+      "Soya is a legume used extensively in food manufacturing. It can be eaten directly as foods such as tofu and edamame, but soya-derived ingredients are also commonly used in processed foods.",
+      "Soya allergy is an immune reaction to soya proteins. Symptoms may affect the digestive system, skin or respiratory system and can vary from mild to more significant reactions."
+    ],
+    symptoms:[
+      {icon:"bloating", title:"Bloating", text:"Feeling bloated or uncomfortable."},
+      {icon:"abdominalPain", title:"Abdominal pain", text:"Stomach cramps or discomfort."},
+      {icon:"nausea", title:"Nausea", text:"Feeling sick after consuming soya."},
+      {icon:"skin", title:"Skin reactions", text:"Rashes, itching or hives may occur."},
+      {icon:"headache", title:"Headaches", text:"Headaches may occur alongside other symptoms."},
+      {icon:"fatigue", title:"Fatigue", text:"Tiredness or feeling generally unwell."}
+    ],
+    goodToKnow:"Soya can appear as tofu, soya milk, soya protein, textured vegetable protein and soya flour. It is also commonly used in processed foods and some sauces."
+  },
+  "Peanuts": {
+    description:[
+      "Peanuts are legumes and are a recognised food allergen. Peanut allergy occurs when the immune system reacts to peanut proteins and can cause symptoms after very small amounts in some people.",
+      "Peanuts and peanut ingredients can occur in both obvious foods and manufactured products. Anyone with a diagnosed peanut allergy should follow the advice provided by their healthcare professional."
+    ],
+    symptoms:[
+      {icon:"skin", title:"Skin reactions", text:"Itching, hives or a rash may develop."},
+      {icon:"swelling", title:"Swelling", text:"Swelling can occur during an allergic reaction."},
+      {icon:"abdominalPain", title:"Abdominal pain", text:"Stomach pain or cramping."},
+      {icon:"nausea", title:"Nausea", text:"Feeling sick after exposure."},
+      {icon:"breathing", title:"Breathing symptoms", text:"Wheezing, coughing or difficulty breathing can occur with allergy."},
+      {icon:"dizziness", title:"Feeling faint", text:"Feeling dizzy or faint can occur during a significant allergic reaction."}
+    ],
+    goodToKnow:"Peanuts may be present in sauces, desserts, chocolate, cereals and processed foods. Always check allergen information and cross-contamination warnings where relevant."
+  },
+  "Tree nuts": {
+    description:[
+      "Tree nuts include foods such as almonds, hazelnuts, walnuts, cashews, pecans, pistachios and Brazil nuts. Nut allergy is an immune reaction to proteins found in one or more types of tree nut.",
+      "People can react to a single type of nut or several different nuts. Nuts can also be present in foods where they are not immediately obvious."
+    ],
+    symptoms:[
+      {icon:"skin", title:"Skin reactions", text:"Itching, hives or a rash may occur."},
+      {icon:"swelling", title:"Swelling", text:"Swelling can affect the lips, face or other areas."},
+      {icon:"abdominalPain", title:"Abdominal pain", text:"Stomach pain or cramping."},
+      {icon:"nausea", title:"Nausea", text:"Feeling sick following exposure."},
+      {icon:"breathing", title:"Breathing symptoms", text:"Coughing, wheezing or breathing difficulty can occur."},
+      {icon:"dizziness", title:"Feeling faint", text:"Dizziness or faintness may occur during a significant reaction."}
+    ],
+    goodToKnow:"Tree nuts can be found in cereals, chocolate, desserts, pesto, sauces and plant-based products. Check the specific nut listed rather than assuming all nuts are equivalent."
+  },
+  "Sesame": {
+    description:[
+      "Sesame seeds and sesame-derived ingredients are used in breads, crackers, hummus, tahini, sauces and many other foods. Sesame allergy is an immune reaction to sesame proteins.",
+      "Sesame can sometimes be present in foods where it is not obvious from the product name, making careful ingredient checking important for people with a known allergy."
+    ],
+    symptoms:[
+      {icon:"skin", title:"Skin reactions", text:"Itching, hives or a rash may develop."},
+      {icon:"swelling", title:"Swelling", text:"Swelling may occur during an allergic reaction."},
+      {icon:"abdominalPain", title:"Abdominal pain", text:"Stomach discomfort or cramping."},
+      {icon:"nausea", title:"Nausea", text:"Feeling sick after exposure."},
+      {icon:"breathing", title:"Breathing symptoms", text:"Coughing, wheezing or breathing difficulty can occur."},
+      {icon:"dizziness", title:"Feeling faint", text:"Dizziness or faintness can occur with a significant reaction."}
+    ],
+    goodToKnow:"Look for sesame, sesame seeds, tahini and sesame oil on ingredient labels. Sesame is particularly common in bread, hummus, Middle Eastern foods and Asian-style sauces."
+  },
+  "Fish": {
+    description:[
+      "Fish allergy is an immune reaction to proteins found in fish. A person may react to one species of fish while tolerating another, although medical advice should be followed before testing tolerance.",
+      "Fish can be present in obvious dishes as well as sauces, stocks and processed foods. Fish products may also be encountered in restaurants and takeaway meals."
+    ],
+    symptoms:[
+      {icon:"skin", title:"Skin reactions", text:"Itching, hives or a rash may occur."},
+      {icon:"swelling", title:"Swelling", text:"Swelling can occur during an allergic reaction."},
+      {icon:"abdominalPain", title:"Abdominal pain", text:"Stomach pain or cramping."},
+      {icon:"nausea", title:"Nausea", text:"Feeling sick following exposure."},
+      {icon:"breathing", title:"Breathing symptoms", text:"Coughing, wheezing or breathing difficulty can occur."},
+      {icon:"dizziness", title:"Feeling faint", text:"Dizziness or faintness may accompany a significant reaction."}
+    ],
+    goodToKnow:"Fish can be hidden in sauces, stocks, dressings and processed foods. Check labels carefully and ask about ingredients when eating food prepared outside the home."
+  },
+  "Crustaceans": {
+    description:[
+      "Crustaceans are shellfish such as prawns, crabs and lobsters. Crustacean allergy is an immune reaction to proteins in these animals and is one of the recognised food allergens.",
+      "Some people react to one type of crustacean while others react to several. Cross-contact can also be important when food is prepared alongside other shellfish."
+    ],
+    symptoms:[
+      {icon:"skin", title:"Skin reactions", text:"Itching, hives or a rash may develop."},
+      {icon:"swelling", title:"Swelling", text:"Swelling may occur during an allergic reaction."},
+      {icon:"abdominalPain", title:"Abdominal pain", text:"Stomach cramps or discomfort."},
+      {icon:"nausea", title:"Nausea", text:"Feeling sick after exposure."},
+      {icon:"breathing", title:"Breathing symptoms", text:"Wheezing, coughing or breathing difficulty can occur."},
+      {icon:"dizziness", title:"Feeling faint", text:"Dizziness or faintness can occur during a significant reaction."}
+    ],
+    goodToKnow:"Prawns, crab, lobster and similar shellfish are crustaceans. Check sauces, seafood dishes and restaurant meals carefully, as cross-contact can occur during preparation."
+  },
+  "Molluscs": {
+    description:[
+      "Molluscs include foods such as mussels, oysters, clams, squid, octopus and snails. Mollusc allergy is an immune reaction to proteins found in these foods.",
+      "Reactions can vary between individuals, and some people may react to several different mollusc species. Molluscs can also be used in mixed seafood dishes and sauces."
+    ],
+    symptoms:[
+      {icon:"skin", title:"Skin reactions", text:"Itching, hives or a rash may occur."},
+      {icon:"swelling", title:"Swelling", text:"Swelling can occur during an allergic reaction."},
+      {icon:"abdominalPain", title:"Abdominal pain", text:"Stomach cramps or discomfort."},
+      {icon:"nausea", title:"Nausea", text:"Feeling sick following exposure."},
+      {icon:"breathing", title:"Breathing symptoms", text:"Coughing, wheezing or breathing difficulty can occur."},
+      {icon:"dizziness", title:"Feeling faint", text:"Dizziness or faintness may occur during a significant reaction."}
+    ],
+    goodToKnow:"Molluscs include mussels, oysters, squid, octopus, clams and snails. Take particular care with mixed seafood dishes and sauces when eating out."
+  },
+  "Celery": {
+    description:[
+      "Celery is a recognised food allergen and can cause an immune reaction in susceptible people. It can be found as fresh celery, seeds, salt, juice or as an ingredient in stocks and seasoning mixes.",
+      "Celery is particularly easy to overlook because it is often used as a background ingredient rather than being the main component of a dish."
+    ],
+    symptoms:[
+      {icon:"skin", title:"Skin reactions", text:"Itching, hives or a rash may occur."},
+      {icon:"swelling", title:"Swelling", text:"Swelling may occur during an allergic reaction."},
+      {icon:"abdominalPain", title:"Abdominal pain", text:"Stomach cramps or discomfort."},
+      {icon:"nausea", title:"Nausea", text:"Feeling sick following exposure."},
+      {icon:"mouth", title:"Mouth tingling", text:"Tingling or itching in the mouth may occur."},
+      {icon:"breathing", title:"Breathing symptoms", text:"Breathing difficulty can occur with allergy."}
+    ],
+    goodToKnow:"Celery may be found in soups, stocks, sauces, seasoning mixes, salads and processed foods. Check labels for celery, celery seed and celery-derived ingredients."
+  },
+  "Mustard": {
+    description:[
+      "Mustard is a recognised food allergen made from the seeds of mustard plants. It is commonly used in condiments, dressings, sauces, marinades and prepared foods.",
+      "Mustard can be present in relatively small quantities and may not always be obvious from the name of a prepared dish."
+    ],
+    symptoms:[
+      {icon:"skin", title:"Skin reactions", text:"Itching, hives or a rash may occur."},
+      {icon:"swelling", title:"Swelling", text:"Swelling can occur during an allergic reaction."},
+      {icon:"abdominalPain", title:"Abdominal pain", text:"Stomach pain or cramping."},
+      {icon:"nausea", title:"Nausea", text:"Feeling sick following exposure."},
+      {icon:"mouth", title:"Mouth irritation", text:"Tingling, itching or irritation in the mouth."},
+      {icon:"breathing", title:"Breathing symptoms", text:"Coughing, wheezing or breathing difficulty can occur."}
+    ],
+    goodToKnow:"Mustard can be found in sauces, mayonnaise, salad dressings, marinades, pickles and processed meats. Check ingredients for mustard and mustard-derived products."
+  },
+  "Sulphites": {
+    description:[
+      "Sulphites are preservatives used to help maintain the colour, freshness and shelf life of certain foods and drinks. They can occur naturally in some foods but are also added during processing.",
+      "Some people, particularly those with asthma, can experience adverse reactions to sulphites. Symptoms are not necessarily the same as those caused by a conventional food allergy."
+    ],
+    symptoms:[
+      {icon:"headache", title:"Headaches", text:"Headaches may occur following exposure."},
+      {icon:"abdominalPain", title:"Abdominal pain", text:"Stomach discomfort or cramping."},
+      {icon:"nausea", title:"Nausea", text:"Feeling sick or unsettled."},
+      {icon:"skin", title:"Skin reactions", text:"Flushing, itching or hives may occur."},
+      {icon:"breathing", title:"Breathing symptoms", text:"Coughing, wheezing or breathing difficulty may occur."},
+      {icon:"fatigue", title:"Fatigue", text:"Feeling tired or generally unwell."}
+    ],
+    goodToKnow:"Sulphites may be used in dried fruit, wine, some processed foods and other preserved products. In the UK, added sulphites must be declared when present above the relevant threshold."
+  },
+  "Lupin": {
+    description:[
+      "Lupin is a legume that is increasingly used in foods such as flour, breads, pastries and plant-based products. Lupin allergy is an immune reaction to proteins found in the lupin plant.",
+      "People with peanut allergy may also need to discuss lupin with a healthcare professional because cross-reactivity can occur between peanut and lupin proteins."
+    ],
+    symptoms:[
+      {icon:"skin", title:"Skin reactions", text:"Itching, hives or a rash may occur."},
+      {icon:"swelling", title:"Swelling", text:"Swelling may occur during an allergic reaction."},
+      {icon:"abdominalPain", title:"Abdominal pain", text:"Stomach cramps or discomfort."},
+      {icon:"nausea", title:"Nausea", text:"Feeling sick following exposure."},
+      {icon:"breathing", title:"Breathing symptoms", text:"Coughing, wheezing or breathing difficulty can occur."},
+      {icon:"dizziness", title:"Feeling faint", text:"Dizziness or faintness can occur during a significant reaction."}
+    ],
+    goodToKnow:"Lupin may be used as flour or protein in bread, pasta, pastries and plant-based foods. Check labels carefully, especially on products marketed as high-protein or gluten-free."
+  },
+  "Onion": {
+    description:[
+      "Onion is a member of the allium family and is widely used in cooking, sauces, soups, stocks and processed foods. Problems with onion are more commonly associated with intolerance or sensitivity than a true food allergy.",
+      "Onions contain fermentable carbohydrates called fructans. In susceptible people these can be difficult to digest and may contribute to digestive symptoms."
+    ],
+    symptoms:[
+      {icon:"bloating", title:"Bloating", text:"Abdominal swelling or fullness after eating."},
+      {icon:"wind", title:"Wind", text:"Increased gas or flatulence."},
+      {icon:"abdominalPain", title:"Abdominal pain", text:"Cramping or stomach discomfort."},
+      {icon:"diarrhoea", title:"Diarrhoea", text:"Loose stools may occur in some people."},
+      {icon:"constipation", title:"Constipation", text:"Changes in bowel habits can occur."},
+      {icon:"gurgling", title:"Stomach rumbling", text:"Increased intestinal movement or noises."}
+    ],
+    goodToKnow:"Onion is particularly high in fructans. It can be present in soups, sauces, stocks, ready meals and seasoning mixes, even when fresh onion is not visible."
+  },
+  "Garlic": {
+    description:[
+      "Garlic is another member of the allium family and is widely used as a seasoning. Reactions to garlic are generally considered an intolerance or sensitivity rather than a recognised food allergy.",
+      "Garlic contains fructans, which can ferment in the digestive system and cause symptoms in people who are sensitive to them."
+    ],
+    symptoms:[
+      {icon:"bloating", title:"Bloating", text:"Feeling swollen or uncomfortably full."},
+      {icon:"wind", title:"Wind", text:"Increased gas or flatulence."},
+      {icon:"abdominalPain", title:"Abdominal pain", text:"Stomach cramps or discomfort."},
+      {icon:"diarrhoea", title:"Diarrhoea", text:"Loose stools following consumption."},
+      {icon:"constipation", title:"Constipation", text:"Changes in bowel habits may occur."},
+      {icon:"gurgling", title:"Stomach rumbling", text:"Increased intestinal noises or movement."}
+    ],
+    goodToKnow:"Garlic is commonly hidden in sauces, marinades, stocks, seasoning blends and ready meals. Garlic powder can also contain concentrated amounts of fructans."
+  },
+  "Chilli": {
+    description:[
+      "Chilli peppers contain naturally occurring compounds that produce their characteristic heat. Some people experience digestive symptoms after eating chilli without having a true chilli allergy.",
+      "The amount tolerated can vary considerably between individuals. Chilli is also frequently combined with other ingredients such as garlic, onion and spices, which can make identifying the trigger more difficult."
+    ],
+    symptoms:[
+      {icon:"abdominalPain", title:"Abdominal pain", text:"Stomach discomfort or cramping."},
+      {icon:"heartburn", title:"Heartburn", text:"A burning sensation in the chest or upper stomach."},
+      {icon:"diarrhoea", title:"Diarrhoea", text:"Loose stools after eating spicy foods."},
+      {icon:"nausea", title:"Nausea", text:"Feeling sick or unsettled."},
+      {icon:"bloating", title:"Bloating", text:"Feeling swollen or uncomfortable."},
+      {icon:"mouth", title:"Mouth irritation", text:"Burning or irritation in the mouth."}
+    ],
+    goodToKnow:"Chilli can appear fresh, dried, powdered or in sauces and seasoning blends. When tracking symptoms, note the amount eaten because tolerance may vary with portion size."
+  },
+  "Tomato": {
+    description:[
+      "Tomatoes are widely used in fresh foods, sauces, soups, pasta dishes and processed meals. Problems with tomato are more commonly reported as intolerance or sensitivity than as a true food allergy.",
+      "Tomatoes are naturally acidic and also contain several compounds that may cause symptoms in susceptible individuals. Keeping a diary can help identify whether symptoms consistently follow tomato consumption."
+    ],
+    symptoms:[
+      {icon:"heartburn", title:"Heartburn", text:"Burning or reflux symptoms after eating."},
+      {icon:"abdominalPain", title:"Abdominal pain", text:"Stomach discomfort or cramping."},
+      {icon:"bloating", title:"Bloating", text:"Feeling swollen or uncomfortably full."},
+      {icon:"diarrhoea", title:"Diarrhoea", text:"Loose stools may occur in some people."},
+      {icon:"nausea", title:"Nausea", text:"Feeling sick or unsettled."},
+      {icon:"skin", title:"Skin reactions", text:"Itching or skin irritation may occur in some people."}
+    ],
+    goodToKnow:"Tomato is found in ketchup, pasta sauces, soups, salsa, pizzas and many ready meals. Processed tomato products can be more concentrated than fresh tomato."
+  },
+  "Legumes / pulses": {
+    description:[
+      "Legumes and pulses include foods such as lentils, chickpeas, beans and peas. They are an important source of protein and fibre but can cause digestive symptoms in some people.",
+      "Some legumes contain fermentable carbohydrates that can be difficult to digest, while others can cause genuine allergic reactions. Symptoms and tolerance can vary significantly between different types and portion sizes."
+    ],
+    symptoms:[
+      {icon:"bloating", title:"Bloating", text:"Abdominal swelling or fullness."},
+      {icon:"wind", title:"Wind", text:"Increased gas following consumption."},
+      {icon:"abdominalPain", title:"Abdominal pain", text:"Cramps or digestive discomfort."},
+      {icon:"diarrhoea", title:"Diarrhoea", text:"Loose stools may occur."},
+      {icon:"constipation", title:"Constipation", text:"Changes in bowel habits can occur."},
+      {icon:"nausea", title:"Nausea", text:"Feeling sick after eating certain pulses."}
+    ],
+    goodToKnow:"Beans, lentils and chickpeas can contain fermentable carbohydrates that produce gas during digestion. Rinsing canned pulses and starting with smaller portions may improve tolerance for some people."
+  },
+  "Sweeteners": {
+    description:[
+      "Sweeteners are used to provide sweetness while reducing or replacing sugar. Some, particularly sugar alcohols such as sorbitol, mannitol and xylitol, can cause digestive symptoms when consumed in larger amounts.",
+      "Sensitivity varies considerably between people. Sweeteners can also appear in many foods marketed as sugar-free, reduced-sugar or low-calorie, so checking the ingredient list can help identify potential triggers."
+    ],
+    symptoms:[
+      {icon:"bloating", title:"Bloating", text:"Abdominal swelling or uncomfortable fullness."},
+      {icon:"wind", title:"Wind", text:"Increased gas or flatulence."},
+      {icon:"abdominalPain", title:"Abdominal pain", text:"Stomach cramps or discomfort."},
+      {icon:"diarrhoea", title:"Diarrhoea", text:"Loose or watery stools, particularly after larger amounts."},
+      {icon:"gurgling", title:"Stomach rumbling", text:"Increased intestinal movement or noises."},
+      {icon:"nausea", title:"Nausea", text:"Feeling sick or unsettled in some people."}
+    ],
+    goodToKnow:"Sorbitol, mannitol, xylitol and other polyols can have a laxative effect when consumed in larger quantities. Check labels on sugar-free sweets, chewing gum, drinks and some 'light' products."
   }
 });
 
