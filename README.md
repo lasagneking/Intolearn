@@ -1,6 +1,6 @@
 # Intolearn
 
-Personal-use prototype. Current build: **v8.4**.
+Personal-use prototype. Current build: **v8.5**.
 
 ## Run it
 
@@ -110,6 +110,16 @@ Tap your avatar (top right) → **Edit profile** to change any of this later. "C
 Three options: *working out what's affecting me*, *already have a diagnosed allergy/intolerance*, or *checking food/tracking for someone else* (parent, carer, teacher). This is stored as `state.profile.usageType` and currently does one thing: it reframes the allergy question right after it — "any *known or suspected*" (learning) vs. "what do you need to watch for" (diagnosed) vs. "what are you checking for" (carer) — so the same question doesn't feel like it's assuming a diagnosis you don't have, or being vague when you already know exactly what you're avoiding.
 
 **Scope boundary, stated plainly**: this does *not* create separate profiles or a separate diary for someone else. Intolearn's entire data model is single-profile — one name, one set of allergies, one diary. A carer selecting "checking for someone else" is still answering as themselves, on the one profile that exists; there's no way to track, say, a parent's own reactions separately from a child's in the same install. True multi-profile support (switching between "who you're tracking for," each with their own diary/allergies/history) would be a significantly larger feature — a real data-model change, not an onboarding tweak — and hasn't been built.
+
+### Accent colour (v8.5)
+
+Five options, picked during onboarding or changed anytime via avatar → Edit profile: Amber (default), Bright orange, Electric blue, Flamingo pink, and `#1bc0ba` (closest common name: Light Sea Green). Purely a `--trace` swap — `--safe` (comfortable/clear) and `--flag` (symptom/allergen warnings) never change, since those carry meaning independent of personal taste and shouldn't be muddled with a decorative preference.
+
+Tapping a swatch previews it live immediately (including on the dialog's own "Get started"/"Save profile" button, which uses the accent colour itself) — closing or cancelling without saving reverts to whatever was active before you opened the dialog, so an unsaved preview never sticks around.
+
+**A real bug this surfaced and fixed along the way**: several places in `styles.css` used hardcoded amber RGB values (`rgba(226,163,60,...)`) for tinted backgrounds — the calendar's "warn" day glow, the warning-box backgrounds, the OCR "working" status — rather than referencing the accent variable. Those would have stayed amber regardless of the chosen theme. Fixed by introducing `--trace-rgb` (the same colour as raw comma-separated components) alongside `--trace`, and converting every hardcoded instance to `rgba(var(--trace-rgb), alpha)`. Any *new* CSS that needs a tinted/translucent version of the accent colour should use this pattern too, not a fresh hardcoded triple — otherwise it'll quietly ignore the user's chosen colour, the same bug all over again.
+
+**What doesn't change**: the app icon and any other baked PNG assets are fixed at whatever colour they were generated with — a runtime CSS variable can't reach into a raster image. Same iOS limitation as before applies on top of that (the home-screen icon only updates on delete-and-reinstall regardless).
 
 ## Visual identity
 

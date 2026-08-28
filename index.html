@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,500;1,9..144,600&family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Petit+Formal+Script&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css" />
-  <link rel="stylesheet" href="styles.css?v=77" />
+  <link rel="stylesheet" href="styles.css?v=78" />
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Intolearn">
@@ -736,6 +736,16 @@
       </div>
       <div id="onboardPhotoPreview"></div>
 
+      <label style="margin-top:20px">Accent colour</label>
+      <p class="muted" style="margin-top:-6px">Purely personal — doesn't change how anything works, just how it looks.</p>
+      <div class="accent-swatch-row" data-choice="onboardAccent">
+        <button type="button" class="accent-swatch" data-value="amber" style="background:#e2a33c" aria-label="Amber"></button>
+        <button type="button" class="accent-swatch" data-value="orange" style="background:#f2731c" aria-label="Bright orange"></button>
+        <button type="button" class="accent-swatch" data-value="blue" style="background:#2e9bff" aria-label="Electric blue"></button>
+        <button type="button" class="accent-swatch" data-value="pink" style="background:#fc8eac" aria-label="Flamingo pink"></button>
+        <button type="button" class="accent-swatch" data-value="teal" style="background:#1bc0ba" aria-label="Teal"></button>
+      </div>
+
       <label style="margin-top:20px" id="onboardAllergyLabel">Any known allergies or intolerances?</label>
       <p class="muted" style="margin-top:-6px" id="onboardAllergyHint">Optional — these become your default selection in Ingredient Checker.</p>
       <div class="checker-trigger-grid" id="onboardingTriggers">
@@ -772,7 +782,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
-  <script src="app.js?v=79"></script>
+  <script src="app.js?v=80"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {

@@ -2,7 +2,7 @@
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 2;
-const APP_VERSION = "8.4";
+const APP_VERSION = "8.5";
 
 // Hand-sketched, single-stroke "field notebook" icon set — every icon uses
 // currentColor so it inherits ink/amber automatically on selected/active
@@ -871,6 +871,7 @@ async function scanIngredientImage(file){
 }
 
 let state = loadState();
+applyAccentTheme(state.profile?.accentTheme || "amber");
 let activeMeal = "breakfast";
 let editingIndex = null;
 let editingDateKey = null;
@@ -884,13 +885,14 @@ let cropper = null;
 let pendingPhotoFile = null;
 let cropDestination = "meal";
 
-function blankState(){ return { days:{}, profile:{name:"", photo:"", allergies:[], usageType:"", onboarded:false}, courses:[], trials:[] }; }
+function blankState(){ return { days:{}, profile:{name:"", photo:"", allergies:[], usageType:"", accentTheme:"amber", onboarded:false}, courses:[], trials:[] }; }
 function loadState(){
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY)) || blankState();
     parsed.days ||= {};
-    parsed.profile ||= {name:"", photo:"", allergies:[], usageType:"", onboarded:false};
+    parsed.profile ||= {name:"", photo:"", allergies:[], usageType:"", accentTheme:"amber", onboarded:false};
     parsed.profile.usageType ||= "";
+    parsed.profile.accentTheme ||= "amber";
     parsed.courses ||= [];
     parsed.trials ||= [];
     return parsed;
@@ -2999,6 +3001,25 @@ function renderTrends(){
 // --- Profile & onboarding ---
 let onboardPhotoData = "";
 
+// --- Accent colour: a personalisation touch, not a semantic one. Only
+// --trace changes here — --safe (comfortable/clear) and --flag (symptom/
+// allergen warnings) stay fixed, since those carry meaning independent of
+// personal taste. --trace-rgb must be kept in sync alongside --trace,
+// since several rgba() backgrounds (calendar glow, warning boxes) need
+// the raw components rather than the hex to stay theme-aware.
+const ACCENT_THEMES={
+  amber:{hex:"#e2a33c", rgb:"226,163,60", label:"Amber"},
+  orange:{hex:"#f2731c", rgb:"242,115,28", label:"Bright orange"},
+  blue:{hex:"#2e9bff", rgb:"46,155,255", label:"Electric blue"},
+  pink:{hex:"#fc8eac", rgb:"252,142,172", label:"Flamingo pink"},
+  teal:{hex:"#1bc0ba", rgb:"27,192,186", label:"Light Sea Green"}
+};
+function applyAccentTheme(key){
+  const theme=ACCENT_THEMES[key] || ACCENT_THEMES.amber;
+  document.documentElement.style.setProperty("--trace", theme.hex);
+  document.documentElement.style.setProperty("--trace-rgb", theme.rgb);
+}
+
 function renderAvatar(){
   const btn=document.getElementById("settingsBtn");
   if(!btn) return;
@@ -3065,6 +3086,15 @@ document.querySelectorAll('[data-choice="onboardUsage"] button').forEach(btn=>{
   });
 });
 
+let onboardingEnterAccent="amber";
+document.querySelectorAll('[data-choice="onboardAccent"] button').forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll('[data-choice="onboardAccent"] button').forEach(b=>b.classList.remove("selected"));
+    btn.classList.add("selected");
+    applyAccentTheme(btn.dataset.value);
+  });
+});
+
 function openOnboarding(isEdit=false){
   const nameEl=document.getElementById("onboardName");
   nameEl.value=isEdit ? (state.profile?.name||"") : "";
@@ -3075,6 +3105,12 @@ function openOnboarding(isEdit=false){
     btn.classList.toggle("selected", btn.dataset.value===usageType);
   });
   updateOnboardAllergyCopy();
+
+  onboardingEnterAccent = state.profile?.accentTheme || "amber";
+  document.querySelectorAll('[data-choice="onboardAccent"] button').forEach(btn=>{
+    btn.classList.toggle("selected", btn.dataset.value===onboardingEnterAccent);
+  });
+  applyAccentTheme(onboardingEnterAccent);
 
   onboardPhotoData=isEdit ? (state.profile?.photo||"") : "";
   document.getElementById("onboardPhotoPreview").innerHTML=onboardPhotoData
@@ -3098,6 +3134,13 @@ function closeOnboardingDialog(){
   if(!dialog) return;
   try{ if(dialog.open) dialog.close(); }catch(err){ console.warn("Dialog close failed",err); }
   if(dialog.hasAttribute("open")) dialog.removeAttribute("open");
+}
+// Used by Cancel/X/Escape — reverts any swatch tapped-but-not-saved back
+// to whatever was active when the dialog opened, so a preview you back
+// out of doesn't quietly stick.
+function cancelOnboardingDialog(){
+  applyAccentTheme(onboardingEnterAccent);
+  closeOnboardingDialog();
 }
 
 async function handleOnboardPhoto(file){
@@ -3134,6 +3177,7 @@ document.getElementById("onboardingSaveBtn").addEventListener("click", ()=>{
     photo: onboardPhotoData || "",
     allergies: getSelectedOnboardingTriggers(),
     usageType: document.querySelector('[data-choice="onboardUsage"] button.selected')?.dataset.value || "learning",
+    accentTheme: document.querySelector('[data-choice="onboardAccent"] button.selected')?.dataset.value || "amber",
     onboarded: true
   };
   saveState();
@@ -3143,10 +3187,10 @@ document.getElementById("onboardingSaveBtn").addEventListener("click", ()=>{
   closeOnboardingDialog();
   showToast("Profile saved");
 });
-document.getElementById("closeOnboardingBtn").addEventListener("click", closeOnboardingDialog);
+document.getElementById("closeOnboardingBtn").addEventListener("click", cancelOnboardingDialog);
 document.getElementById("onboardingDialog").addEventListener("cancel", e=>{
   if(!state.profile?.onboarded){ e.preventDefault(); return; }
-  closeOnboardingDialog();
+  cancelOnboardingDialog();
 });
 
 document.querySelectorAll(".nav-item").forEach(btn=>{
@@ -3275,6 +3319,7 @@ document.getElementById("restoreFileInput").addEventListener("change", e=>{
       renderGreeting();
       renderLastBackupText();
       renderKnowledgeGrid();
+      applyAccentTheme(state.profile?.accentTheme || "amber");
       showToast("Backup restored");
       document.getElementById("settingsDialog").close();
     }else{
