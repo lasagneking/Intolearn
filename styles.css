@@ -25,14 +25,20 @@ h1,h2,h3{font-family:var(--font-display)}
 .tb-icon-1{width:120px;top:-26px;left:56%}
 .tb-icon-2{width:80px;top:6px;left:6%}
 .tb-icon-3{width:66px;top:-14px;right:9%}
+.tb-icon-4{width:72px;bottom:-18px;left:32%}
+.tb-icon-5{width:58px;bottom:-10px;right:30%}
 @media (prefers-reduced-motion: no-preference){
-  .tb-icon-1{animation:tbDrift1 58s ease-in-out infinite alternate}
-  .tb-icon-2{animation:tbDrift2 74s ease-in-out infinite alternate}
-  .tb-icon-3{animation:tbDrift3 50s ease-in-out infinite alternate}
+  .tb-icon-1{animation:tbDrift1 38s ease-in-out infinite alternate}
+  .tb-icon-2{animation:tbDrift2 48s ease-in-out infinite alternate}
+  .tb-icon-3{animation:tbDrift3 33s ease-in-out infinite alternate}
+  .tb-icon-4{animation:tbDrift4 41s ease-in-out infinite alternate}
+  .tb-icon-5{animation:tbDrift5 36s ease-in-out infinite alternate}
 }
 @keyframes tbDrift1{from{transform:translate(0,0) rotate(0deg)}to{transform:translate(-20px,16px) rotate(9deg)}}
 @keyframes tbDrift2{from{transform:translate(0,0) rotate(0deg)}to{transform:translate(18px,-12px) rotate(-7deg)}}
 @keyframes tbDrift3{from{transform:translate(0,0) rotate(0deg)}to{transform:translate(-14px,12px) rotate(11deg)}}
+@keyframes tbDrift4{from{transform:translate(0,0) rotate(0deg)}to{transform:translate(16px,-14px) rotate(-8deg)}}
+@keyframes tbDrift5{from{transform:translate(0,0) rotate(0deg)}to{transform:translate(-15px,10px) rotate(10deg)}}
 .brand{font-family:var(--font-wordmark);font-weight:400;font-size:34px;letter-spacing:.01em}
 .byline{font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:2px}
 .icon-button{border:1px solid var(--line);background:var(--surface);color:var(--ink);width:42px;height:42px;border-radius:0;font-size:20px;display:grid;place-items:center}
