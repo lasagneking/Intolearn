@@ -2,7 +2,7 @@
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 2;
-const APP_VERSION = "8.5";
+const APP_VERSION = "8.6";
 
 // Hand-sketched, single-stroke "field notebook" icon set — every icon uses
 // currentColor so it inherits ink/amber automatically on selected/active
@@ -871,7 +871,6 @@ async function scanIngredientImage(file){
 }
 
 let state = loadState();
-applyAccentTheme(state.profile?.accentTheme || "amber");
 let activeMeal = "breakfast";
 let editingIndex = null;
 let editingDateKey = null;
@@ -3458,6 +3457,7 @@ function renderAll(){
     catch(err){ console.error(fn.name+" failed",err); }
   });
 }
+applyAccentTheme(state.profile?.accentTheme || "amber");
 ensureDay(); renderAll();
 renderAvatar();
 renderGreeting();

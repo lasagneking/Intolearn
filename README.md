@@ -1,6 +1,6 @@
 # Intolearn
 
-Personal-use prototype. Current build: **v8.5**.
+Personal-use prototype. Current build: **v8.6**.
 
 ## Run it
 
@@ -118,6 +118,8 @@ Five options, picked during onboarding or changed anytime via avatar → Edit pr
 Tapping a swatch previews it live immediately (including on the dialog's own "Get started"/"Save profile" button, which uses the accent colour itself) — closing or cancelling without saving reverts to whatever was active before you opened the dialog, so an unsaved preview never sticks around.
 
 **A real bug this surfaced and fixed along the way**: several places in `styles.css` used hardcoded amber RGB values (`rgba(226,163,60,...)`) for tinted backgrounds — the calendar's "warn" day glow, the warning-box backgrounds, the OCR "working" status — rather than referencing the accent variable. Those would have stayed amber regardless of the chosen theme. Fixed by introducing `--trace-rgb` (the same colour as raw comma-separated components) alongside `--trace`, and converting every hardcoded instance to `rgba(var(--trace-rgb), alpha)`. Any *new* CSS that needs a tinted/translucent version of the accent colour should use this pattern too, not a fresh hardcoded triple — otherwise it'll quietly ignore the user's chosen colour, the same bug all over again.
+
+**A second bug this shipped with (fixed in v8.6)**: the initial `applyAccentTheme(...)` call was placed immediately after `let state = loadState();`, near the very top of the script — but `const ACCENT_THEMES` and `function applyAccentTheme` weren't defined until much later in the same file. In JavaScript, calling a function whose body references a `const` that hasn't been reached yet in top-to-bottom execution throws a `ReferenceError` (the "temporal dead zone"), and an uncaught error like that stops the entire script from running any further. That took down everything defined after it — the avatar/photo rendering, the Settings click handler, the meal cards, the mood icon — all in one go, which is why several seemingly unrelated things broke together. Fixed by moving the startup call down to sit alongside the other startup renders (`renderAvatar()`, `renderGreeting()`, etc.), which already run after every function and constant in the file has been defined. The lesson for any future startup code: a call that runs immediately (not inside an event handler) must physically come after everything it references in the file, not just be logically related to it.
 
 **What doesn't change**: the app icon and any other baked PNG assets are fixed at whatever colour they were generated with — a runtime CSS variable can't reach into a raster image. Same iOS limitation as before applies on top of that (the home-screen icon only updates on delete-and-reinstall regardless).
 
