@@ -2,7 +2,7 @@
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 2;
-const APP_VERSION = "7.6";
+const APP_VERSION = "7.7";
 
 // Hand-sketched, single-stroke "field notebook" icon set — every icon uses
 // currentColor so it inherits ink/amber automatically on selected/active
@@ -2105,40 +2105,99 @@ function renderExit(){
   document.getElementById("exitStatus").textContent=complete?"Saved":"Not completed";
   document.getElementById("summaryMood").innerHTML=moodIcon(ex.feeling);
 }
-function lastNDays(n){
-  const arr=[]; const d=new Date();
-  for(let i=n-1;i>=0;i--){ const x=new Date(d); x.setDate(d.getDate()-i); arr.push(x); }
-  return arr;
-}
-function renderWeek(){
-  const days=lastNDays(7);
-  document.getElementById("weekStrip").innerHTML=days.map(d=>{
-    const k=dateKey(d), ex=state.days[k]?.exit||{};
-    const face=ex.feeling ? moodIcon(ex.feeling) : ICONS.noData;
-    return `<div class="day-pill"><div class="day">${d.toLocaleDateString("en-GB",{weekday:"short"})}</div><div class="num">${d.getDate()}</div><div class="face">${face}</div></div>`;
+
+// --- Knowledge: reference cards for each allergen/intolerance category.
+// Content is supplied by Lee, not generated here — this file only wires
+// it to the same icon system as the rest of the app. SYMPTOM_ICONS covers
+// the concepts common across cards (bloating, fatigue, etc.); add to this
+// set as new symptoms show up in future cards rather than one-off icons
+// per card, so the same "Fatigue" icon always means the same thing.
+const SYMPTOM_ICONS={
+  bloating:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M8 10c-.6 3 .3 7 4 7s4.6-4 4-7"/><path d="M8 10c0-2.2 1.8-4 4-4s4 1.8 4 4"/><path d="M6.5 8.3 5.3 7M17.5 8.3l1.2-1.3M9 6l-.5-1.6M15 6l.5-1.6"/></svg>`,
+  abdominalPain:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M5 6c1.5 0 1.5 2 3 2s1.5-2 3-2 1.5 2 3 2 1.5-2 3-2"/><path d="M5 12c1.5 0 1.5 2 3 2s1.5-2 3-2 1.5 2 3 2 1.5-2 3-2"/><path d="M5 18c1.5 0 1.5 2 3 2s1.5-2 3-2 1.5 2 3 2 1.5-2 3-2"/></svg>`,
+  diarrhoea:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M7 11h10l-1.2 7.2a2 2 0 0 1-2 1.8h-3.6a2 2 0 0 1-2-1.8Z"/><path d="M8 11c0-3 1.5-5 4-5s4 2 4 5"/></svg>`,
+  fatigue:`<svg viewBox="0 0 24 24" ${SVG_BASE}><rect x="7" y="4" width="10" height="17" rx="1.5"/><path d="M9.5 4V2.5h5V4"/><path d="M9.5 16h5"/></svg>`,
+  headache:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M8.5 15.5C6.5 14 6 11.8 7 9.8 8 7.7 10.2 6.5 12.5 7c2.4.5 4 2.6 3.7 5-.2 1.6-1.2 2.5-1.2 4v1.5h-6.5Z"/><path d="M10 21h4"/><path d="M5 8l-1.3-.6M6.5 5.3 5.6 4M9 4l-.4-1.5"/></svg>`,
+  brainFog:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M9 15.5a3.5 3.5 0 0 1-1-6.9A4 4 0 0 1 15.8 7 3.5 3.5 0 0 1 15 13.9"/><path d="M12 8v8"/><path d="M3.5 12h2M18.5 10.5h2M4 16h1.8"/></svg>`,
+  nausea:`<svg viewBox="0 0 24 24" ${SVG_BASE}><circle cx="12" cy="12" r="7.5"/><path d="M8.5 10.5c.6-.8 1.4-.8 2 0M13.5 10.5c.6-.8 1.4-.8 2 0"/><path d="M8 15.5c1.2-1 2.7-1 4 0 1.3-1 2.8-1 4 0"/></svg>`,
+  skin:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M6 13c0-4 2.5-8 6-9 3.5 1 6 5 6 9a6 6 0 0 1-12 0Z"/><circle cx="10" cy="13" r=".4" fill="currentColor"/><circle cx="14" cy="11" r=".4" fill="currentColor"/><circle cx="12" cy="15.5" r=".4" fill="currentColor"/></svg>`,
+  joint:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M6 18 11 8"/><path d="M13 8 18 18"/><circle cx="12" cy="8" r="2.2"/></svg>`,
+  breathing:`<svg viewBox="0 0 24 24" ${SVG_BASE}><path d="M8 20c-2.5 0-4-1.8-4-4s1.8-4 4-3.4"/><path d="M16 20c2.5 0 4-1.8 4-4s-1.8-4-4-3.4"/><path d="M12 4v13"/></svg>`,
+  vomiting:`<svg viewBox="0 0 24 24" ${SVG_BASE}><circle cx="12" cy="10" r="6.5"/><path d="M9 8.5c.5-.7 1.3-.7 1.8 0M13.2 8.5c.5-.7 1.3-.7 1.8 0"/><path d="M9 12c1-.8 2.3-.8 3 0 .7-.8 2-.8 3 0"/><path d="M12 17v4M9.5 21h5"/></svg>`
+};
+
+let knowledgeCards={};
+function registerKnowledgeCards(cards){ knowledgeCards=cards||{}; renderKnowledgeGrid(); }
+
+function renderKnowledgeGrid(){
+  const grid=document.getElementById("knowledgeGrid");
+  if(!grid) return;
+  const entries=Object.keys(ALLERGEN_ICONS);
+  grid.innerHTML=entries.map(name=>{
+    const has=!!knowledgeCards[name];
+    return `<button type="button" class="knowledge-tile${has?"":" knowledge-tile-empty"}" data-name="${escapeHtml(name)}">
+      <span class="icon-tile">${ALLERGEN_ICONS[name]}</span>
+      <strong>${escapeHtml(name)}</strong>
+      ${has?"":"<small>Coming soon</small>"}
+    </button>`;
   }).join("");
-  let meals=0,symptoms=0,logged=0;
-  days.forEach(d=>{
-    const day=state.days[dateKey(d)];
-    if(!day) return;
-    logged++;
-    mealTypes.forEach(m=>meals+=(day.meals?.[m.key]||[]).length);
-    symptoms+=(day.exit?.symptoms||[]).length;
+  grid.querySelectorAll(".knowledge-tile").forEach(btn=>{
+    btn.addEventListener("click", ()=>openKnowledgeCard(btn.dataset.name));
   });
-  document.getElementById("weeklyStats").innerHTML=`
-    <div class="stat"><strong>${meals}</strong><span>food entries</span></div>
-    <div class="stat"><strong>${symptoms}</strong><span>symptoms</span></div>
-    <div class="stat"><strong>${logged}</strong><span>days logged</span></div>`;
-  const items=[];
-  days.slice().reverse().forEach(d=>{
-    const day=state.days[dateKey(d)];
-    if(!day) return;
-    mealTypes.forEach(m=>(day.meals?.[m.key]||[]).forEach(x=>items.push({d,m,x})));
-  });
-  document.getElementById("weekEntries").innerHTML=items.length?items.map(o=>`
-    <div class="timeline-item"><strong>${escapeHtml(o.x.name)}</strong><small>${o.d.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"})} · ${mealTypes.find(m=>m.key===o.m).label}${o.x.time?" · "+o.x.time:""}</small></div>
-  `).join(""):`<p class="muted">No entries yet.</p>`;
 }
+
+function openKnowledgeCard(name){
+  const card=knowledgeCards[name];
+  if(!card) return;
+  document.getElementById("knowledgeCardIcon").innerHTML=ALLERGEN_ICONS[name]||"";
+  document.getElementById("knowledgeCardTitle").textContent=name;
+
+  const paragraphs=(card.description||[]).map(p=>`<p>${escapeHtml(p)}</p>`).join("");
+  const symptoms=(card.symptoms||[]).map(s=>`
+    <div class="symptom-tile">
+      <span class="icon-tile symptom-icon">${SYMPTOM_ICONS[s.icon]||SYMPTOM_ICONS.abdominalPain}</span>
+      <div><strong>${escapeHtml(s.title)}</strong><small>${escapeHtml(s.text)}</small></div>
+    </div>`).join("");
+
+  document.getElementById("knowledgeCardBody").innerHTML=`
+    ${paragraphs}
+    ${symptoms ? `<div class="knowledge-divider"></div><div class="eyebrow">KEY SYMPTOMS</div><div class="symptom-grid">${symptoms}</div>` : ""}
+    ${card.goodToKnow ? `<div class="checker-warning" style="margin-top:20px"><strong>Good to know</strong><p>${escapeHtml(card.goodToKnow)}</p></div>` : ""}
+  `;
+  document.getElementById("knowledgeDialog").showModal();
+}
+function closeKnowledgeDialog(){
+  const d=document.getElementById("knowledgeDialog");
+  if(!d) return;
+  try{ if(d.open) d.close(); }catch(err){ console.warn("Dialog close failed",err); }
+  if(d.hasAttribute("open")) d.removeAttribute("open");
+}
+document.getElementById("closeKnowledgeDialog").addEventListener("click", closeKnowledgeDialog);
+document.getElementById("knowledgeDialog").addEventListener("cancel", e=>{
+  e.preventDefault();
+  closeKnowledgeDialog();
+});
+
+// Working example, using the exact content already shared, so the system
+// is provable before the remaining 21 cards arrive.
+registerKnowledgeCards({
+  "Wheat": {
+    description:[
+      "Gluten cereals intolerance (also known as coeliac disease) is an immune reaction to gluten, a protein found in wheat, barley, rye and their derivatives. When gluten is consumed, it can damage the lining of the small intestine, leading to poor nutrient absorption and a range of uncomfortable symptoms.",
+      "It is a chronic condition and symptoms can occur even with small amounts of gluten. Strict, lifelong avoidance of gluten is currently the only treatment."
+    ],
+    symptoms:[
+      {icon:"bloating", title:"Bloating & wind", text:"Feeling bloated or gassy after eating."},
+      {icon:"abdominalPain", title:"Abdominal pain", text:"Stomach cramps or pain, often after meals."},
+      {icon:"diarrhoea", title:"Diarrhoea", text:"Frequent, loose or watery stools."},
+      {icon:"fatigue", title:"Fatigue", text:"Tiredness, low energy or weakness."},
+      {icon:"headache", title:"Headaches", text:"Recurring headaches or migraines."},
+      {icon:"brainFog", title:"Brain fog", text:"Difficulty concentrating, forgetfulness."}
+    ],
+    goodToKnow:"Gluten can be hidden in many foods including sauces, soups, processed meats, confectionery and some drinks. Always check labels and look for hidden sources."
+  }
+});
+
 function monthDates(){
   const now=new Date(); const y=now.getFullYear(), m=now.getMonth();
   const first=new Date(y,m,1), last=new Date(y,m+1,0);
@@ -2943,7 +3002,7 @@ function renderTodayEyebrow(){
 }
 
 function renderAll(){
-  const jobs=[renderMeals,renderExit,renderWeek,renderMonth,renderTrends,renderReport,renderTodayEyebrow,renderSupplements,renderCourses,applyCollapseState,renderActiveFlagBanner,renderTrialStatus,renderBackupReminder];
+  const jobs=[renderMeals,renderExit,renderMonth,renderTrends,renderReport,renderTodayEyebrow,renderSupplements,renderCourses,applyCollapseState,renderActiveFlagBanner,renderTrialStatus,renderBackupReminder];
   jobs.forEach(fn=>{
     try{ fn(); }
     catch(err){ console.error(fn.name+" failed",err); }

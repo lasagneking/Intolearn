@@ -491,3 +491,24 @@ dialog input,dialog textarea{margin-bottom:14px}
   .pd-table th{background:#f0efe9}
   .pd-meta{font-size:11px;color:#333;margin:4px 0}
 }
+
+/* Knowledge tab: reference cards for each allergen/intolerance category */
+.knowledge-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line-soft);margin-top:16px}
+.knowledge-tile{background:var(--surface);border:0;border-radius:0;padding:18px 14px;display:flex;flex-direction:column;align-items:flex-start;gap:10px;color:var(--ink);text-align:left}
+.knowledge-tile .icon-tile{width:42px;height:42px}
+.knowledge-tile strong{font-weight:600;font-size:14px}
+.knowledge-tile-empty{opacity:.5}
+.knowledge-tile-empty small{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted)}
+
+.knowledge-shell{max-width:600px}
+.knowledge-title-row{display:flex;align-items:center;gap:14px}
+.knowledge-title-row h2{font-size:24px;margin:0}
+.knowledge-icon{width:52px;height:52px;flex-shrink:0}
+#knowledgeCardBody p{color:var(--ink);line-height:1.55;font-family:var(--font-body);margin:0 0 14px}
+.knowledge-divider{border-top:1px solid var(--line-soft);margin:18px 0 14px}
+.symptom-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
+.symptom-tile{display:flex;gap:12px;align-items:flex-start}
+.symptom-tile .icon-tile{width:44px;height:44px;flex-shrink:0}
+.symptom-tile strong{display:block;font-size:14px;font-weight:600}
+.symptom-tile small{display:block;color:var(--muted);font-family:var(--font-body);font-size:12px;line-height:1.4;margin-top:2px}
+@media(max-width:420px){.symptom-grid{grid-template-columns:1fr}}
