@@ -1,6 +1,6 @@
 # Intolearn
 
-Personal-use prototype. Current build: **v7.1**.
+Personal-use prototype. Current build: **v7.3**.
 
 ## Run it
 
@@ -79,6 +79,10 @@ v5.0 moved off the original light green theme to a dark, editorial "field notebo
 All icons are hand-drawn single-stroke line SVGs using `currentColor` (so they inherit ink/amber automatically on selected/active states) — this includes the 22-item allergen/trigger grid shared by Ingredient Checker and onboarding (v6.2), which was the last remaining spot still using native emoji. The icon set lives in the `ICONS` and `ALLERGEN_ICONS` objects near the top of `app.js`; `renderAllergenGridIcons()` applies the allergen set to both grid instances from one shared map, rather than duplicating 22 SVGs twice in the HTML.
 
 The top bar (v6.7) has three of those same icons (wheat, milk, egg) drifting very faintly behind the wordmark — `opacity:.05`, slow independent CSS keyframe loops, 50-74s per cycle. It's `aria-hidden` and wrapped in `@media (prefers-reduced-motion: no-preference)`, so it's silent to screen readers and simply doesn't animate for anyone with that OS setting on. Since this sits on every screen (unlike the calendar glow or side-effect pulse, which only appear when relevant), it's deliberately the most restrained of the "exception to flat design" moments — meant to be felt more than seen.
+
+**App icon (v7.3)**: redesigned again after the magnifying-glass version turned out too muddy at real icon size — replaced with a bold italic "I" (echoing the wordmark's first letter) with a two-leaf sprout growing out of the top, plus the same small amber accent dot used on tile icons throughout the app. Simpler than the magnifying-glass version, reads clearly even at 192px, and ties directly to the wordmark rather than being a separate illustration. Built as one SVG (`icon-192.png`, `icon-512.png`, `apple-touch-icon.png` all rasterized from it) rather than three hand-edited files.
+
+**Important iOS limitation**: the home-screen icon is captured once when you "Add to Home Screen" and does not refresh automatically afterward — this isn't a caching issue cache-busting can fix, it's just how iOS handles PWA icons. To see the new icon, delete the existing Intolearn icon from the home screen and re-add it via Safari's "Add to Home Screen" again.
 
 ## Printable food diary for a doctor (Settings → "Print food diary for a doctor")
 
