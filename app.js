@@ -2,7 +2,7 @@
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 3;
-const APP_VERSION = "9.1";
+const APP_VERSION = "9.2";
 
 // Hand-sketched, single-stroke "field notebook" icon set — every icon uses
 // currentColor so it inherits ink/amber automatically on selected/active
@@ -3082,7 +3082,12 @@ function findConfoundedPairs(){
   const MAX_OVERALL_RATE=0.75; // exclude near-daily ingredients as partners — they "confound" with everything trivially
   const names=Object.keys(tagDays).filter(t=>{
     const d=tagDays[t];
-    return d.size>=MIN_DAYS && (d.size/totalDays)<=MAX_OVERALL_RATE;
+    // Only consider tags that actually map to a recognised allergen/
+    // intolerance category — otherwise generic cooking staples (salt,
+    // water, sugar, rapeseed oil) trivially "never appear apart" simply
+    // because they're in most recipes, not because of any real
+    // entanglement worth testing.
+    return d.size>=MIN_DAYS && (d.size/totalDays)<=MAX_OVERALL_RATE && !!matchKnowledgeCategory(t);
   });
 
   const pairs=[];

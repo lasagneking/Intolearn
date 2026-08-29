@@ -1,6 +1,6 @@
 # Intolearn
 
-Personal-use prototype. Current build: **v9.1**.
+Personal-use prototype. Current build: **v9.2**.
 
 ## Run it
 
@@ -153,7 +153,8 @@ A plain "Intolearn v9.1" line at the bottom of Settings. This exists specificall
 
 A new "Worth separating" panel on Trends surfaces pairs of foods/ingredients that have never once been logged apart — meaning the correlation engine above it genuinely cannot tell which one (if either) is responsible for anything, since there's no day with one but not the other to compare against. Each pair gets a one-tap "Test [X] alone" / "Test [Y] alone" button that opens Elimination Trial pre-filled with that ingredient, turning the observation directly into an action rather than just a note.
 
-Two filters keep this from being noisy:
+Three filters keep this from being noisy:
+- **Only ingredients that map to a recognised allergen/intolerance category** (v9.2 fix, via the same `matchKnowledgeCategory` matcher used to cross-link Trends/Report to Learn). Without this, generic cooking staples — salt, water, sugar, rapeseed oil — trivially "never appear apart" simply because they're in most recipes, not because of any real entanglement worth testing. Real bug found the same day this feature shipped: the pairing logic was treating every raw ingredient word as a candidate, so it happily surfaced "Salt & Water" as something to isolate.
 - **Minimum 3 overlapping days** — a single coincidence isn't a pattern.
 - **Excludes anything present on more than 75% of all logged days** as a *partner* in a pair — an ingredient you have almost daily "confounds" with everything trivially and isn't a useful thing to flag (it can still appear as the *less frequent* item in a pair with something rarer). This mirrors the same reasoning already used to exclude near-daily ingredients from Trends/Report itself.
 
