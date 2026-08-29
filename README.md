@@ -1,6 +1,6 @@
 # Intolearn
 
-Personal-use prototype. Current build: **v8.7**.
+Personal-use prototype. Current build: **v8.8**.
 
 ## Run it
 
