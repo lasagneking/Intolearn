@@ -2,7 +2,7 @@
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 3;
-const APP_VERSION = "9.0";
+const APP_VERSION = "9.1";
 
 // Hand-sketched, single-stroke "field notebook" icon set — every icon uses
 // currentColor so it inherits ink/amber automatically on selected/active
@@ -3052,6 +3052,90 @@ document.querySelectorAll('[data-choice="reactionWindow"] button').forEach(btn=>
   });
 });
 
+// --- Confounding isolator: finds pairs of foods/ingredients that never
+// appear apart in the logged data, so the correlation engine above can't
+// tell which one (if either) is actually responsible. Excludes anything
+// too common to be interesting (a near-daily ingredient "confounds" with
+// everything trivially) and anything too rare to trust (a single overlap
+// day proves nothing). ---
+function buildDayTagMap(){
+  const map={};
+  Object.entries(state.days||{}).forEach(([k,day])=>{
+    const tags=new Set();
+    mealTypes.forEach(m=>(day.meals?.[m.key]||[]).forEach(x=>{
+      (x.ingredients||[]).forEach(i=>tags.add(i.toLowerCase()));
+    }));
+    (day.supplements||[]).forEach(s=>{ if(s.name) tags.add(s.name.trim().toLowerCase()); });
+    tags.forEach(t=>{
+      map[t] ||= new Set();
+      map[t].add(k);
+    });
+  });
+  return map;
+}
+function findConfoundedPairs(){
+  const totalDays=Object.keys(state.days||{}).length;
+  if(totalDays<5) return [];
+
+  const tagDays=buildDayTagMap();
+  const MIN_DAYS=3;
+  const MAX_OVERALL_RATE=0.75; // exclude near-daily ingredients as partners — they "confound" with everything trivially
+  const names=Object.keys(tagDays).filter(t=>{
+    const d=tagDays[t];
+    return d.size>=MIN_DAYS && (d.size/totalDays)<=MAX_OVERALL_RATE;
+  });
+
+  const pairs=[];
+  for(let i=0;i<names.length;i++){
+    for(let j=i+1;j<names.length;j++){
+      const a=names[i], b=names[j];
+      const daysA=tagDays[a], daysB=tagDays[b];
+      const smaller=daysA.size<=daysB.size ? daysA : daysB;
+      const larger=daysA.size<=daysB.size ? daysB : daysA;
+      if(smaller.size<MIN_DAYS) continue;
+      let overlap=0;
+      smaller.forEach(d=>{ if(larger.has(d)) overlap++; });
+      if(overlap===smaller.size){ // never appears without the other
+        pairs.push({a, b, days:smaller.size});
+      }
+    }
+  }
+  return pairs.sort((x,y)=>y.days-x.days).slice(0,3);
+}
+function renderConfoundedPairs(){
+  const panel=document.getElementById("confoundedPairsPanel");
+  const box=document.getElementById("confoundedPairs");
+  if(!panel || !box) return;
+  const pairs=findConfoundedPairs();
+  if(!pairs.length){
+    panel.classList.add("hidden");
+    box.innerHTML="";
+    return;
+  }
+  panel.classList.remove("hidden");
+  box.innerHTML=pairs.map(p=>{
+    const aLabel=titleCase(p.a), bLabel=titleCase(p.b);
+    return `
+    <div class="connection-card">
+      <div class="connection-title"><strong>${knowledgeLink(aLabel)} &amp; ${knowledgeLink(bLabel)}</strong></div>
+      <p>Always logged together — every one of the ${p.days} day${p.days===1?"":"s"} you've had either, you've had both. Hard to tell which one (if either) is actually the cause.</p>
+      <div class="dialog-actions" style="margin-top:10px">
+        <button type="button" class="secondary confound-test-btn" data-ingredient="${escapeHtml(aLabel)}">Test ${escapeHtml(aLabel)} alone</button>
+        <button type="button" class="secondary confound-test-btn" data-ingredient="${escapeHtml(bLabel)}">Test ${escapeHtml(bLabel)} alone</button>
+      </div>
+    </div>`;
+  }).join("");
+  box.querySelectorAll(".confound-test-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      document.getElementById("trialIngredient").value=btn.dataset.ingredient;
+      document.getElementById("trialIngredient").classList.remove("field-error");
+      document.getElementById("trialEliminationDays").value="14";
+      document.getElementById("trialReintroDays").value="3";
+      document.getElementById("trialDialog").showModal();
+    });
+  });
+}
+
 function renderTrends(){
   const allKeys=Object.keys(state.days||{});
   const {ranked, baseline, consideredDays}=buildAssociationStats(allKeys, day=>{
@@ -3075,6 +3159,7 @@ function renderTrends(){
       <div class="trend-meta"><span>Rate above your baseline</span><strong>+${Math.round((t.rate-baseline)*100)}pt</strong></div>
     </div>
   `).join(""):`<div class="card"><h3>Not enough data yet</h3><p class="muted">${consideredDays<3?"Log a few more days and Intolearn will start surfacing associations here.":"Nothing stands out clearly from your usual baseline yet — that's a good sign, or you just need more repeated exposures logged."}</p></div>`;
+  renderConfoundedPairs();
 }
 
 // --- Profile & onboarding ---
@@ -3285,6 +3370,7 @@ document.querySelectorAll(".nav-item").forEach(btn=>{
 document.getElementById("settingsBtn").onclick=()=>{
   renderSettingsProfile();
   renderLastBackupText();
+  document.getElementById("settingsVersionText").textContent=`Intolearn v${APP_VERSION}`;
   document.getElementById("settingsDialog").showModal();
 };
 document.getElementById("editProfileBtn").onclick=()=>{
@@ -3530,8 +3616,38 @@ function renderTodayEyebrow(){
   el.textContent=`TODAY / DAY ${String(n).padStart(2,"0")}`;
 }
 
+// A day only counts toward the streak if something was actually logged —
+// not merely that the app was opened that day (ensureDay creates a day
+// object just from visiting Today, which shouldn't inflate this number).
+function dayHasRealEntry(day){
+  if(!day) return false;
+  const hasMeal=mealTypes.some(m=>(day.meals?.[m.key]||[]).length>0);
+  const hasExit=day.exit && Object.keys(day.exit).length>0;
+  const hasSupplement=(day.supplements||[]).length>0;
+  return hasMeal || hasExit || hasSupplement;
+}
+function computeLoggingStreak(){
+  let cursor=dateKey();
+  // Today not logged yet doesn't break the streak — the day isn't over.
+  if(!dayHasRealEntry(state.days[cursor])){
+    cursor=dateKeyPlusDays(cursor,-1);
+  }
+  let streak=0;
+  while(dayHasRealEntry(state.days[cursor])){
+    streak++;
+    cursor=dateKeyPlusDays(cursor,-1);
+  }
+  return streak;
+}
+function renderLoggingStreak(){
+  const el=document.getElementById("loggingStreak");
+  if(!el) return;
+  const streak=computeLoggingStreak();
+  el.textContent = streak>=1 ? `${streak}-day logging streak` : "";
+}
+
 function renderAll(){
-  const jobs=[renderMeals,renderExit,renderMonth,renderTrends,renderReport,renderTodayEyebrow,renderSupplements,renderCourses,applyCollapseState,renderActiveFlagBanner,renderTrialStatus,renderBackupReminder];
+  const jobs=[renderMeals,renderExit,renderMonth,renderTrends,renderReport,renderTodayEyebrow,renderSupplements,renderCourses,applyCollapseState,renderActiveFlagBanner,renderTrialStatus,renderBackupReminder,renderLoggingStreak];
   jobs.forEach(fn=>{
     try{ fn(); }
     catch(err){ console.error(fn.name+" failed",err); }

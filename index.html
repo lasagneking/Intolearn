@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,500;1,9..144,600&family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Petit+Formal+Script&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css" />
-  <link rel="stylesheet" href="styles.css?v=81" />
+  <link rel="stylesheet" href="styles.css?v=82" />
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Intolearn">
@@ -40,6 +40,7 @@
             <div class="eyebrow" id="todayEyebrow">TODAY</div>
             <h1 id="todayDate">Today</h1>
             <p>Small entries, clearer patterns.</p>
+            <p class="hero-streak" id="loggingStreak"></p>
           </div>
           <div class="mood-orb" id="summaryMood">🙂</div>
         </div>
@@ -292,6 +293,13 @@
         </div>
 
         <div id="trendCards" class="trend-stack"></div>
+
+        <section class="report-panel report-highlight hidden" id="confoundedPairsPanel" style="margin-top:20px">
+          <div class="report-panel-head"><div><div class="eyebrow">WORTH SEPARATING</div><h2>Always logged together</h2></div><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="6"/><circle cx="15" cy="12" r="6"/></svg></span></div>
+          <p class="muted" style="margin-top:-6px">These never appear apart in your data, so the pattern-matching above can't tell which one (if either) is actually responsible.</p>
+          <div id="confoundedPairs"></div>
+        </section>
+
         <div class="card helper-card">
           <h3>How this works</h3>
           <p id="trendsHowItWorks">Ingredients are compared with symptom days in your local diary. Ingredients logged on almost every day, or without enough repeats, are left out — only ones noticeably above your own baseline symptom rate are shown. The more consistently you log, the more useful this becomes.</p>
@@ -642,6 +650,7 @@
       <button type="button" class="secondary wide" id="restoreDataBtn" style="margin-top:10px">Restore from backup</button>
       <input type="file" id="restoreFileInput" accept="application/json" class="hidden" />
       <button type="button" class="danger wide" id="clearDataBtn" style="margin-top:10px">Clear all local data</button>
+      <p class="muted" id="settingsVersionText" style="margin-top:20px;text-align:center;font-family:var(--font-mono);font-size:11px"></p>
     </form>
   </dialog>
 
@@ -787,7 +796,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
-  <script src="app.js?v=83"></script>
+  <script src="app.js?v=84"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {

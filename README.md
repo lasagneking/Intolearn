@@ -1,6 +1,6 @@
 # Intolearn
 
-Personal-use prototype. Current build: **v9.0**.
+Personal-use prototype. Current build: **v9.1**.
 
 ## Run it
 
@@ -144,6 +144,24 @@ It uses the browser's native print (Share → Print → Save to PDF on iOS), not
 **A real bug in this, found and fixed in v8.9**: extra pages of solid black used to show up after the actual content — real content in the print output, but full black pages tacked on afterward. Root cause: the technique hiding the rest of the app used `visibility:hidden` on everything, which makes elements invisible but still keeps their layout space — so the full height of the app (topbar, Today's cards, everything) was still influencing how many physical pages got generated, even though none of it was meant to be there. Since `body`'s own dark background was never explicitly hidden (a `body *` selector hides descendants of body, not the body element itself), any page beyond where the actual printable content ended just showed that dark background with nothing on top of it. Fixed by switching to `display:none` on the app shell instead, which removes it from layout entirely — the printed document's height now matches the actual content, with no leftover blank/black pages.
 
 **Gaps worth knowing about**: some food-diary request forms (particularly for weight-management services) also ask for hunger/fullness ratings, why you were eating, mood, and physical activity/exercise — Intolearn doesn't have dedicated fields for any of those. Mood is partially covered by Exit Interview's "how do you feel," but hunger/fullness and exercise aren't tracked at all currently. If your own appointment specifically asks for those, the per-meal Notes field is a reasonable place to jot them freehand — they'll show up in the "Notes" column of the printout.
+
+## App version (Settings, v9.1)
+
+A plain "Intolearn v9.1" line at the bottom of Settings. This exists specifically to kill a recurring debugging problem in this project's history: because the app is a cache-heavy PWA (service worker + browser HTTP cache + iOS's own icon caching), "is this actually broken, or am I looking at a stale cached copy of an older build" has come up repeatedly. Checking the version number after a reload now answers that in one glance instead of a back-and-forth.
+
+## Confounding isolator (Trends, v9.1)
+
+A new "Worth separating" panel on Trends surfaces pairs of foods/ingredients that have never once been logged apart — meaning the correlation engine above it genuinely cannot tell which one (if either) is responsible for anything, since there's no day with one but not the other to compare against. Each pair gets a one-tap "Test [X] alone" / "Test [Y] alone" button that opens Elimination Trial pre-filled with that ingredient, turning the observation directly into an action rather than just a note.
+
+Two filters keep this from being noisy:
+- **Minimum 3 overlapping days** — a single coincidence isn't a pattern.
+- **Excludes anything present on more than 75% of all logged days** as a *partner* in a pair — an ingredient you have almost daily "confounds" with everything trivially and isn't a useful thing to flag (it can still appear as the *less frequent* item in a pair with something rarer). This mirrors the same reasoning already used to exclude near-daily ingredients from Trends/Report itself.
+
+This only checks food/supplement co-occurrence, not causation or symptom timing — it's a data-quality observation ("you can't separate these yet"), not a claim that either ingredient actually matters.
+
+## Logging streak (Today, v9.1)
+
+A quiet line under the Today hero card — "N-day logging streak" — counting consecutive days with at least one real entry (a meal, an Exit Interview, or a supplement/med), not just days the app happened to be opened. Deliberately not gamified: no fire icon, no counter that resets to a shaming "0-day streak" message — if there's no current streak, the line is simply blank rather than displaying a discouraging zero. Today not being logged yet doesn't break the streak either, since the day isn't over — it only breaks once a day genuinely passes with nothing logged.
 
 ## Open Food Facts: reading more than structured text (v9.0)
 
