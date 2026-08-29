@@ -1,6 +1,6 @@
 # Intolearn
 
-Personal-use prototype. Current build: **v8.8**.
+Personal-use prototype. Current build: **v8.9**.
 
 ## Run it
 
@@ -140,6 +140,8 @@ The top bar (v6.7, expanded v7.5) has five of those same icons (wheat, milk, egg
 Generates a clean, light-background printable page covering the last 3/7/14 days: for each day, a table of everything eaten and drunk (time, meal, food, quantity, cooking method, notes), plus supplements/meds taken and an Exit Interview summary. Structured to match what a typical NHS dietetic food-diary request form asks for — time-stamped entries, household-measure quantities, and how food was prepared, though of course actual requirements vary by service, so it's always worth checking what your specific appointment letter asks for.
 
 It uses the browser's native print (Share → Print → Save to PDF on iOS), not a generated PDF file — no extra library needed, and it works offline. This is the one screen in the app that deliberately breaks from the dark theme: black text on white, since that's what actually prints and photocopies well.
+
+**A real bug in this, found and fixed in v8.9**: extra pages of solid black used to show up after the actual content — real content in the print output, but full black pages tacked on afterward. Root cause: the technique hiding the rest of the app used `visibility:hidden` on everything, which makes elements invisible but still keeps their layout space — so the full height of the app (topbar, Today's cards, everything) was still influencing how many physical pages got generated, even though none of it was meant to be there. Since `body`'s own dark background was never explicitly hidden (a `body *` selector hides descendants of body, not the body element itself), any page beyond where the actual printable content ended just showed that dark background with nothing on top of it. Fixed by switching to `display:none` on the app shell instead, which removes it from layout entirely — the printed document's height now matches the actual content, with no leftover blank/black pages.
 
 **Gaps worth knowing about**: some food-diary request forms (particularly for weight-management services) also ask for hunger/fullness ratings, why you were eating, mood, and physical activity/exercise — Intolearn doesn't have dedicated fields for any of those. Mood is partially covered by Exit Interview's "how do you feel," but hunger/fullness and exercise aren't tracked at all currently. If your own appointment specifically asks for those, the per-meal Notes field is a reasonable place to jot them freehand — they'll show up in the "Notes" column of the printout.
 

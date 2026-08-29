@@ -485,10 +485,10 @@ dialog input,dialog textarea{margin-bottom:14px}
    to match everything else, on purpose. */
 #printDiaryContainer{display:none}
 @media print{
-  body *{visibility:hidden}
-  #printDiaryContainer,#printDiaryContainer *{visibility:visible}
+  html,body{background:#fff}
+  .app-shell{display:none}
   #printDiaryContainer{
-    display:block;position:absolute;top:0;left:0;width:100%;
+    display:block;position:static;width:100%;
     background:#fff;color:#161310;padding:20px;
     font-family:Georgia,'Times New Roman',serif;
   }
