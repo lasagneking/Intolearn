@@ -506,6 +506,11 @@
           <p id="barcodeProductBrand" class="muted"></p>
           <div id="barcodeAllergenTags" class="family-tags allergen-tags"></div>
           <p id="barcodeProductCompleteness" class="barcode-completeness"></p>
+          <div id="barcodeIngredientsImageBox" class="barcode-photo-fallback hidden">
+            <img id="barcodeIngredientsImage" alt="Ingredients label photo from Open Food Facts" style="width:100%;max-height:220px;object-fit:contain;background:#fff;margin-bottom:10px" />
+            <small>Open Food Facts has a photo of the label but no transcribed text. Intolearn can try reading it directly.</small>
+            <button type="button" class="secondary wide" id="scanOFFImageBtn" style="margin-top:10px">Scan this label photo</button>
+          </div>
         </div>
         <button type="button" class="primary wide" id="useBarcodeProductBtn">Use this product</button>
       </div>
@@ -782,7 +787,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
-  <script src="app.js?v=82"></script>
+  <script src="app.js?v=83"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {

@@ -1,6 +1,6 @@
 # Intolearn
 
-Personal-use prototype. Current build: **v8.9**.
+Personal-use prototype. Current build: **v9.0**.
 
 ## Run it
 
@@ -144,6 +144,12 @@ It uses the browser's native print (Share → Print → Save to PDF on iOS), not
 **A real bug in this, found and fixed in v8.9**: extra pages of solid black used to show up after the actual content — real content in the print output, but full black pages tacked on afterward. Root cause: the technique hiding the rest of the app used `visibility:hidden` on everything, which makes elements invisible but still keeps their layout space — so the full height of the app (topbar, Today's cards, everything) was still influencing how many physical pages got generated, even though none of it was meant to be there. Since `body`'s own dark background was never explicitly hidden (a `body *` selector hides descendants of body, not the body element itself), any page beyond where the actual printable content ended just showed that dark background with nothing on top of it. Fixed by switching to `display:none` on the app shell instead, which removes it from layout entirely — the printed document's height now matches the actual content, with no leftover blank/black pages.
 
 **Gaps worth knowing about**: some food-diary request forms (particularly for weight-management services) also ask for hunger/fullness ratings, why you were eating, mood, and physical activity/exercise — Intolearn doesn't have dedicated fields for any of those. Mood is partially covered by Exit Interview's "how do you feel," but hunger/fullness and exercise aren't tracked at all currently. If your own appointment specifically asks for those, the per-meal Notes field is a reasonable place to jot them freehand — they'll show up in the "Notes" column of the printout.
+
+## Open Food Facts: reading more than structured text (v9.0)
+
+Real gap found and closed: Open Food Facts has several layers of data per product, and the barcode lookup was only ever reading the structured, contributor-transcribed layer (`ingredients_text`, `allergens_tags`, and their derived fields). Plenty of products — like the one that surfaced this — have an actual **photo of the ingredients label** uploaded (`image_ingredients_url`) with nobody having transcribed it into text yet. The app was requesting that field from the API at all, so it had no way to know the photo existed, even though a person browsing the same product on Open Food Facts' own site could see it right there.
+
+Now: that field is requested and stored (cache schema bumped to force already-cached products, like this one, to refetch with the new field rather than staying stuck on the old incomplete data). When structured allergen data is genuinely unavailable but a label photo exists, the barcode result shows that photo directly plus a **"Scan this label photo"** button — which fetches it and runs it through the same OCR/UK-allergen-detection logic used for a user's own photos, updating the product card in place (and the local product cache, so it doesn't need re-scanning next time you look this barcode up). If the fetch fails for any reason (network, or Open Food Facts not permitting cross-origin fetches for that particular asset), it fails quietly with a toast rather than breaking anything — the photo is still visible either way for a manual check.
 
 ## Elimination trials
 

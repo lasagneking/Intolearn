@@ -1,8 +1,8 @@
 
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
-const PRODUCT_CACHE_SCHEMA = 2;
-const APP_VERSION = "8.9";
+const PRODUCT_CACHE_SCHEMA = 3;
+const APP_VERSION = "9.0";
 
 // Hand-sketched, single-stroke "field notebook" icon set — every icon uses
 // currentColor so it inherits ink/amber automatically on selected/active
@@ -367,6 +367,7 @@ function compactOFFProduct(barcode, product){
     traces:(product.traces_tags||[]).map(x=>String(x).replace(/^en:/,"").replaceAll("-"," ")),
     labels:product.labels_tags || [],
     image:offImageUrl(product),
+    ingredientsImage:product.image_ingredients_url || product.image_ingredients_small_url || "",
     fetchedAt:new Date().toISOString(),
     source:"Open Food Facts"
   };
@@ -386,7 +387,8 @@ async function fetchOFFProduct(barcode){
     "ingredients_text_with_allergens","ingredients_text_with_allergens_en",
     "allergens_tags","allergens_from_ingredients","allergens_from_ingredients_tags",
     "traces_tags","labels_tags","tags_sources",
-    "image_front_url","image_front_small_url"
+    "image_front_url","image_front_small_url",
+    "image_ingredients_url","image_ingredients_small_url"
   ].join(",");
   const url=`https://world.openfoodfacts.org/api/v3.6/product/${encodeURIComponent(code)}.json?fields=${encodeURIComponent(fields)}`;
   const response=await fetch(url,{headers:{"Accept":"application/json"}});
@@ -422,6 +424,14 @@ function renderBarcodeProduct(product){
     tags.innerHTML=`<span class="allergen-none-detected">No recognised allergen detected from the available data</span>`;
   }
 
+  const imageFallback=document.getElementById("barcodeIngredientsImageBox");
+  if(product.allergenConfidence==="missing" && product.ingredientsImage){
+    imageFallback.classList.remove("hidden");
+    document.getElementById("barcodeIngredientsImage").src=product.ingredientsImage;
+  }else{
+    imageFallback.classList.add("hidden");
+  }
+
   const pieces=[];
   pieces.push(product.fromCache
     ? "Loaded from your local Intolearn product cache."
@@ -429,8 +439,10 @@ function renderBarcodeProduct(product){
 
   if(product.allergenSource) pieces.push(`Allergen source: ${product.allergenSource}.`);
 
-  if(!product.ingredientsText){
-    pieces.push("Ingredient text is missing — use the ingredient-photo fallback and verify the pack.");
+  if(!product.ingredientsText && !product.ingredientsImage){
+    pieces.push("No ingredient text or label photo is available from Open Food Facts for this product — use your own camera to photograph the pack and verify manually.");
+  }else if(!product.ingredientsText){
+    pieces.push("Open Food Facts has no transcribed ingredient text for this product — see the label photo below.");
   }else if(product.allergenConfidence==="intolearn-derived"){
     pieces.push("The allergen list above was inferred by Intolearn from Open Food Facts ingredient text rather than a populated structured allergen field.");
   }else if(product.allergenConfidence==="none-detected"){
@@ -1975,8 +1987,76 @@ document.getElementById("lookupBarcodeBtn").addEventListener("click",()=>{
   const code=document.getElementById("manualBarcode").value.trim();
   if(code) lookupBarcode(code);
 });
+async function scanOFFIngredientsImage(file){
+  const status=document.getElementById("barcodeStatus");
+  status.classList.remove("hidden");
+  if(!window.Tesseract){
+    status.textContent="Ingredient reader could not load. Check your internet connection and try again.";
+    status.className="scan-status error";
+    return;
+  }
+  status.textContent="Reading ingredient label… first scan can take a little longer.";
+  status.className="scan-status working";
+  try{
+    const result=await Tesseract.recognize(file,"eng",{
+      logger:m=>{
+        if(m.status==="recognizing text" && typeof m.progress==="number"){
+          status.textContent=`Reading ingredient label… ${Math.round(m.progress*100)}%`;
+        }
+      }
+    });
+    const cleaned=cleanOCRText(result.data.text||"");
+    if(!cleaned) throw new Error("No text detected");
+
+    const localAllergens=detectUKAllergens(cleaned);
+    if(barcodeProduct){
+      barcodeProduct.ingredientsText=cleaned;
+      barcodeProduct.allergens=localAllergens;
+      barcodeProduct.allergenSource="Intolearn OCR of the Open Food Facts label photo";
+      barcodeProduct.allergenConfidence=localAllergens.length ? "intolearn-derived" : "none-detected";
+      // Update the local product cache too, so this same barcode doesn't
+      // need re-scanning next time — the improved data sticks.
+      const cache=loadProductCache();
+      if(cache[barcodeProduct.barcode]){
+        cache[barcodeProduct.barcode]={...barcodeProduct};
+        saveProductCache(cache);
+      }
+      renderBarcodeProduct(barcodeProduct);
+    }
+    status.textContent=localAllergens.length
+      ? `Label read. ${localAllergens.length} UK allergen ${localAllergens.length===1?"group":"groups"} detected — please review before using this product.`
+      : "Label read — no recognised allergen found, but please double check the pack yourself.";
+    status.className="scan-status success";
+  }catch(err){
+    console.error(err);
+    status.textContent="I couldn't read that label clearly — you can still view the photo above and check it yourself.";
+    status.className="scan-status error";
+  }
+}
+
 document.getElementById("manualBarcode").addEventListener("keydown",e=>{
   if(e.key==="Enter"){e.preventDefault();document.getElementById("lookupBarcodeBtn").click();}
+});
+document.getElementById("scanOFFImageBtn").addEventListener("click", async()=>{
+  const url=barcodeProduct?.ingredientsImage;
+  if(!url) return;
+  const btn=document.getElementById("scanOFFImageBtn");
+  const original=btn.textContent;
+  btn.textContent="Fetching label photo…";
+  btn.disabled=true;
+  try{
+    const res=await fetch(url);
+    if(!res.ok) throw new Error(`Fetch failed (${res.status})`);
+    const blob=await res.blob();
+    const file=new File([blob], "off-ingredients-label.jpg", {type:blob.type||"image/jpeg"});
+    await scanOFFIngredientsImage(file);
+  }catch(err){
+    console.warn("Could not fetch Open Food Facts ingredients photo",err);
+    showToast("Couldn't fetch that photo automatically — view it above and enter ingredients manually.");
+  }finally{
+    btn.textContent=original;
+    btn.disabled=false;
+  }
 });
 document.getElementById("useBarcodeProductBtn").addEventListener("click",async()=>{
   if(!barcodeProduct) return;
