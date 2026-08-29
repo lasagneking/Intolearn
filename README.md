@@ -1,6 +1,6 @@
 # Intolearn
 
-Personal-use prototype. Current build: **v8.6**.
+Personal-use prototype. Current build: **v8.7**.
 
 ## Run it
 
@@ -187,6 +187,10 @@ When adding a new supplement or medication, "How often?" offers three options:
 Each day's entry is a normal, independent diary entry once created (editing one day doesn't change other days), so the correlation engine and Report see them exactly like any other entry. Deleting a single day's auto-logged entry only skips that one day — the course keeps running; use **Stop** on the course itself to end it early. Recurrence can only be set when creating a new entry, not when editing an existing one, to avoid accidentally spinning up a second course.
 
 **Known limitation**: the openFDA lookup depends on that API allowing cross-origin requests directly from a browser. It's a public API intended for this kind of use and has worked in testing, but if you ever see prescription lookups silently doing nothing where you'd expect a match, that's the first thing to check (openFDA's status, or whether a lightweight proxy is needed).
+
+## App-like touch behaviour (v8.7)
+
+Double-tap-to-zoom is disabled — `touch-action:manipulation` on every element plus `maximum-scale=1.0, user-scalable=no` on the viewport meta tag. The CSS property is the one actually doing the work: modern Safari has scaled back how much it honours `user-scalable=no` on its own (Apple keeps pinch-zoom available regardless, for accessibility), but `touch-action:manipulation` reliably kills the double-tap gesture specifically without touching pinch-zoom, which iOS wouldn't let us fully disable anyway. This wasn't a regression — it was never actually set, just now fixed.
 
 ## Known limitations
 

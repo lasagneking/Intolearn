@@ -8,7 +8,8 @@
   --font-mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
   --font-wordmark:'Petit Formal Script',cursive;
 }
-*{box-sizing:border-box}
+*{box-sizing:border-box;touch-action:manipulation}
+html{touch-action:manipulation}
 body{margin:0;font-family:var(--font-body);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;color-scheme:dark}
 /* Scrollbars hidden everywhere — scrolling still works, just no visible track/thumb. */
 *{scrollbar-width:none;-ms-overflow-style:none}
