@@ -2,7 +2,7 @@
 const STORAGE_KEY = "intolearn_personal_v1";
 const PRODUCT_CACHE_KEY = "intolearn_product_cache_v1";
 const PRODUCT_CACHE_SCHEMA = 3;
-const APP_VERSION = "9.2";
+const APP_VERSION = "9.3";
 
 // Hand-sketched, single-stroke "field notebook" icon set — every icon uses
 // currentColor so it inherits ink/amber automatically on selected/active
@@ -432,6 +432,21 @@ function renderBarcodeProduct(product){
     imageFallback.classList.add("hidden");
   }
 
+  // Always available whenever Intolearn doesn't have a confident structured
+  // answer — regardless of which specific field Open Food Facts happened to
+  // populate for this product. A brand-new or lightly-curated product can
+  // easily have a photo uploaded without anyone having gone through OFF's
+  // separate step of tagging it specifically as "the ingredients label" —
+  // this link always works because it's just the product's page, however
+  // its data happens to be organised.
+  const offLink=document.getElementById("barcodeOFFLink");
+  if(product.allergenConfidence!=="structured"){
+    offLink.href=`https://world.openfoodfacts.org/product/${encodeURIComponent(product.barcode)}`;
+    offLink.classList.remove("hidden");
+  }else{
+    offLink.classList.add("hidden");
+  }
+
   const pieces=[];
   pieces.push(product.fromCache
     ? "Loaded from your local Intolearn product cache."
@@ -440,7 +455,7 @@ function renderBarcodeProduct(product){
   if(product.allergenSource) pieces.push(`Allergen source: ${product.allergenSource}.`);
 
   if(!product.ingredientsText && !product.ingredientsImage){
-    pieces.push("No ingredient text or label photo is available from Open Food Facts for this product — use your own camera to photograph the pack and verify manually.");
+    pieces.push("No ingredient text or tagged label photo is available through the API for this product — it may still have photos on the Open Food Facts site itself (common for newly added products), just not yet organised in a way Intolearn can read automatically. Check the link below, or use your own camera to photograph the pack.");
   }else if(!product.ingredientsText){
     pieces.push("Open Food Facts has no transcribed ingredient text for this product — see the label photo below.");
   }else if(product.allergenConfidence==="intolearn-derived"){
